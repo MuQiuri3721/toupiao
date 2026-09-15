@@ -1,0 +1,5 @@
+# 运行时数据（自动生成，含真实票数，不入库）
+data/
+server.log
+*.log
+.zcode/

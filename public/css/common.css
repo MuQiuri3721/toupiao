@@ -1,0 +1,151 @@
+/* 全局基础 */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* hidden 属性优先于任何 display 规则 */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button { font-family: inherit; border: none; cursor: pointer; }
+input, select { font-family: inherit; }
+
+/* 轻提示 */
+#vv-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  width: max-content;
+  max-width: 92vw;
+}
+.vv-toast-item {
+  background: rgba(20, 24, 38, .92);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all .25s ease;
+  max-width: 100%;
+}
+.vv-toast-item.show { opacity: 1; transform: translateY(0); }
+.vv-toast-item.success { background: rgba(22, 130, 96, .95); }
+.vv-toast-item.error { background: rgba(196, 60, 60, .95); }
+
+/* 键盘焦点可见性 */
+:focus-visible {
+  outline: 2px solid #c07ae0;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 尊重系统"减少动态效果"：所有动画/过渡降级为瞬时 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .dec-layer, .shooting-star, .bg-note, .grain { display: none !important; }
+}
+
+/* 尊重系统"减少透明度"：毛玻璃退化为实色 */
+@media (prefers-reduced-transparency: reduce) {
+  .panel, .card, .my-votes, .banner, .topbar, .hero, .login-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .panel { background: #191338; }
+  .card, .my-votes { background: #fff; }
+}
+
+/* 二维码缺库时的降级样式 */
+.qr-fallback {
+  padding: 12px;
+  font-size: 13px;
+  word-break: break-all;
+  color: #555;
+  text-align: center;
+}
+
+/* ===== 唯美装饰层（星星/花瓣/音符） ===== */
+.dec-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.dec-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, .8);
+  animation: decTwinkle 3s ease-in-out infinite;
+}
+@keyframes decTwinkle {
+  0%, 100% { opacity: .08; transform: scale(.7); }
+  50% { opacity: .95; transform: scale(1.2); }
+}
+.dec-petal {
+  position: absolute;
+  top: -6vh;
+  background: linear-gradient(135deg, #ffd9ea, #ff9fcd);
+  border-radius: 120% 8% 120% 8%;
+  animation: decFall linear infinite;
+}
+@keyframes decFall {
+  0%   { transform: translate3d(0, -8vh, 0) rotate(0deg); }
+  25%  { transform: translate3d(4vw, 28vh, 0) rotate(100deg); }
+  50%  { transform: translate3d(-3vw, 55vh, 0) rotate(210deg); }
+  75%  { transform: translate3d(3vw, 82vh, 0) rotate(310deg); }
+  100% { transform: translate3d(0, 112vh, 0) rotate(420deg); }
+}
+.dec-note {
+  position: absolute;
+  bottom: -6vh;
+  color: var(--dec-note-color, rgba(255, 255, 255, .4));
+  text-shadow: 0 0 14px currentColor;
+  animation: decRise linear infinite;
+}
+@keyframes decRise {
+  0%   { transform: translate3d(0, 0, 0) rotate(-8deg); opacity: 0; }
+  8%   { opacity: .55; }
+  50%  { transform: translate3d(-2.5vw, -38vh, 0) rotate(8deg); }
+  90%  { opacity: .2; }
+  100% { transform: translate3d(2vw, -78vh, 0) rotate(-6deg); opacity: 0; }
+}
+
+/* 流星 */
+.shooting-star {
+  position: absolute;
+  top: 12%;
+  left: 70%;
+  width: 130px;
+  height: 1.5px;
+  background: linear-gradient(270deg, rgba(255, 255, 255, .95), transparent);
+  border-radius: 999px;
+  transform: rotate(24deg);
+  opacity: 0;
+  animation: decShoot 9s linear infinite;
+}
+@keyframes decShoot {
+  0%       { transform: translate3d(0, 0, 0) rotate(24deg); opacity: 0; }
+  1.5%     { opacity: 1; }
+  7%       { transform: translate3d(-46vw, 24vh, 0) rotate(24deg); opacity: 0; }
+  100%     { transform: translate3d(-46vw, 24vh, 0) rotate(24deg); opacity: 0; }
+}
