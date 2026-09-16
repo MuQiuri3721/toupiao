@@ -121,16 +121,23 @@ setInterval(() => {
 
 function lanAddress() {
   const ifs = os.networkInterfaces();
-  let fallback = '';
+  // 打分挑选最像“真局域网”的网卡：跳过回环/链路本地，
+  // 校园网常见 10.x 优先，192.168 次之；以 .1 结尾的多为虚拟网卡/网关，降权
+  let best = '', bestScore = -1;
   for (const list of Object.values(ifs)) {
     for (const it of list || []) {
       if (it.family !== 'IPv4' || it.internal) continue;
-      // 优先真实局域网地址，跳过链路本地(169.254.*)地址
-      if (/^169\.254\./.test(it.address)) { fallback = fallback || it.address; continue; }
-      return it.address;
+      const a = it.address;
+      if (/^169\.254\./.test(a) || /^198\.18\./.test(a)) continue;
+      let sc = 1;
+      if (/^192\.168\./.test(a)) sc = 2.5;
+      if (/^172\.(1[6-9]|2\d|3[01])\./.test(a)) sc = 3;
+      if (/^10\./.test(a)) sc = 3;
+      if (/\.1$/.test(a)) sc -= 1;
+      if (sc > bestScore) { bestScore = sc; best = a; }
     }
   }
-  return fallback || '127.0.0.1';
+  return best || '127.0.0.1';
 }
 
 function voteBaseUrl() {

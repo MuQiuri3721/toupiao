@@ -413,27 +413,44 @@ body {
   position: relative;
   display: flex;
   align-items: flex-end;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .015));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .012)),
+    repeating-linear-gradient(0deg, transparent 0 23%, rgba(120, 130, 255, .06) 23% calc(23% + 1px));
   border: 1px solid rgba(255, 214, 240, .13);
   border-radius: 16px 16px 6px 6px;
 }
 .col-fill {
   position: relative;
   width: 100%;
-  height: 0%;
+  height: var(--h, 0%);
   max-height: calc(100% - 32px);
-  border-radius: 14px 14px 5px 5px;
-  background: linear-gradient(180deg, #cda9ff, #917ef0 58%, #7fabf6);
-  box-shadow: 0 0 20px rgba(190, 150, 255, .5), inset 0 6px 16px rgba(255, 255, 255, .3);
+  border-radius: 12px 12px 5px 5px;
+  /* 伪 3D 柱身：两侧暗部 + 纵向能量渐变 */
+  background:
+    linear-gradient(90deg, rgba(6, 4, 20, .42), rgba(6, 4, 20, 0) 22% 78%, rgba(6, 4, 20, .42)),
+    linear-gradient(180deg, #d7b6ff 0%, #9f8cf2 45%, #7f9ef4 100%);
+  box-shadow: 0 0 22px rgba(178, 140, 255, .5), inset 0 0 0 1px rgba(255, 255, 255, .22);
   transition: height .8s cubic-bezier(.22, 1, .36, 1);
+}
+/* 发光顶盖：像一根能量柱的顶端 */
+.col-fill::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 2%;
+  right: 2%;
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffe3f6, #ffffff 50%, #d5e6ff);
+  box-shadow: 0 0 16px 3px rgba(255, 255, 255, .7);
 }
 .col-num {
   position: absolute;
-  top: -30px;
+  top: -34px;
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 20px;
+  font-size: clamp(18px, 1.6vw, 26px);
   font-weight: 800;
   color: #f6f1ff;
   text-shadow: 0 0 16px rgba(214, 182, 255, .65);
@@ -451,12 +468,12 @@ body {
   z-index: 2;
 }
 .col-name {
-  margin-top: 10px;
+  margin-top: 6px;
   text-align: center;
   font-family: 'KaiTi', 'STKaiti', '楷体', 'Noto Serif SC', serif;
-  font-size: 16.5px;
+  font-size: clamp(14px, 1.15vw, 17px);
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   color: #f8f3ff;
   white-space: nowrap;
   overflow: hidden;
@@ -474,24 +491,107 @@ body {
 
 /* 柱状图前三名 */
 .col.top1 .col-fill {
-  background: linear-gradient(180deg, #ffe9b0, #f5c66d 58%, #eda94f);
-  box-shadow: 0 0 24px rgba(255, 216, 145, .65), inset 0 6px 16px rgba(255, 255, 255, .42);
+  background:
+    linear-gradient(90deg, rgba(40, 24, 4, .38), rgba(40, 24, 4, 0) 22% 78%, rgba(40, 24, 4, .38)),
+    linear-gradient(180deg, #ffe9b0 0%, #f5c66d 45%, #e8a94f 100%);
+  box-shadow: 0 0 30px rgba(255, 216, 145, .65), inset 0 0 0 1px rgba(255, 255, 255, .3);
+  animation: top1Glow 2.4s ease-in-out infinite;
 }
-.col.top1 .col-num { color: #ffe3a8; text-shadow: 0 0 18px rgba(255, 216, 145, .75); }
+@keyframes top1Glow {
+  50% { box-shadow: 0 0 46px rgba(255, 216, 145, .95), inset 0 0 0 1px rgba(255, 255, 255, .45); }
+}
+.col.top1 .col-fill::before {
+  background: linear-gradient(90deg, #fff7dc, #ffffff 50%, #ffe6a8);
+  box-shadow: 0 0 22px 5px rgba(255, 216, 145, .9);
+}
+.col.top1 .col-num { color: #ffe3a8; text-shadow: 0 0 20px rgba(255, 216, 145, .8); }
 .col.top1 .col-rank { filter: drop-shadow(0 0 8px rgba(255, 216, 145, .8)); }
 .col.top2 .col-fill {
-  background: linear-gradient(180deg, #f2f5fd, #c0cbe2 58%, #9fb0d0);
-  box-shadow: 0 0 18px rgba(226, 232, 250, .45), inset 0 6px 16px rgba(255, 255, 255, .4);
+  background:
+    linear-gradient(90deg, rgba(30, 34, 48, .38), rgba(30, 34, 48, 0) 22% 78%, rgba(30, 34, 48, .38)),
+    linear-gradient(180deg, #f2f5fd 0%, #c0cbe2 45%, #9fb0d0 100%);
+  box-shadow: 0 0 20px rgba(226, 232, 250, .45), inset 0 0 0 1px rgba(255, 255, 255, .28);
 }
 .col.top2 .col-num { color: #eef2fd; }
 .col.top3 .col-fill {
-  background: linear-gradient(180deg, #ffc9ae, #f29a76 58%, #e5835f);
-  box-shadow: 0 0 18px rgba(255, 178, 156, .5), inset 0 6px 16px rgba(255, 255, 255, .32);
+  background:
+    linear-gradient(90deg, rgba(48, 20, 10, .38), rgba(48, 20, 10, 0) 22% 78%, rgba(48, 20, 10, .38)),
+    linear-gradient(180deg, #ffc9ae 0%, #f29a76 45%, #e5835f 100%);
+  box-shadow: 0 0 20px rgba(255, 178, 156, .5), inset 0 0 0 1px rgba(255, 255, 255, .26);
 }
 .col.top3 .col-num { color: #ffcdb4; }
 .col.safe .col-rank { color: #a5f3d3; }
-.col.out { opacity: .5; filter: saturate(.5); }
+.col.out { opacity: .5; filter: saturate(.55); }
 .col.out .col-name { color: #b3a8d6; }
+
+/* 名次上升时的整柱闪光 */
+.col.flash .col-fill { animation: rankFlash .9s ease; }
+@keyframes rankFlash {
+  25% { filter: brightness(1.8) saturate(1.35); }
+}
+
+/* ===== 台面：光线 + 倒影 + 均衡器 ===== */
+.col-floor {
+  position: relative;
+  height: 40px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.col-floor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 6%;
+  right: 6%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 214, 240, .55), transparent);
+  box-shadow: 0 0 14px rgba(255, 182, 230, .55);
+}
+.col-refl {
+  display: block;
+  margin: 3px auto 0;
+  width: 74%;
+  border-radius: 8px;
+  opacity: .32;
+  filter: blur(3px);
+  background: linear-gradient(180deg, #b394f2 0%, rgba(127, 175, 244, .5) 55%, transparent 95%);
+  -webkit-mask-image: linear-gradient(180deg, #000 15%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 15%, transparent 92%);
+  transition: height .8s cubic-bezier(.22, 1, .36, 1);
+}
+.col.top1 .col-refl { background: linear-gradient(180deg, #f5c66d 0%, rgba(255, 216, 145, .45) 55%, transparent 95%); }
+.col.top2 .col-refl { background: linear-gradient(180deg, #c0cbe2 0%, rgba(226, 232, 250, .4) 55%, transparent 95%); }
+.col.top3 .col-refl { background: linear-gradient(180deg, #f29a76 0%, rgba(255, 178, 156, .45) 55%, transparent 95%); }
+.col.out .col-refl { opacity: .14; }
+
+/* 底部音频均衡器跳动带（纯装饰，营造演唱会氛围） */
+.chart-wrap { position: relative; }
+.eq {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 12px;
+  height: 62px;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  opacity: .3;
+  pointer-events: none;
+  z-index: 0;
+}
+.eq i {
+  flex: 1;
+  height: 100%;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, rgba(247, 168, 255, .95), rgba(139, 124, 246, .12));
+  transform-origin: bottom;
+  animation: eqBob ease-in-out infinite alternate;
+}
+@keyframes eqBob {
+  from { transform: scaleY(var(--a, .2)); }
+  to { transform: scaleY(var(--b, .8)); }
+}
 
 /* 首次渲染：交错升起 */
 .col.enter {

@@ -163,6 +163,7 @@ function buildCol() {
       '<div class="col-rank"></div>' +
       '<div class="col-fill"><div class="col-num"><b>0</b></div></div>' +
     '</div>' +
+    '<div class="col-floor"><i class="col-refl"></i></div>' +
     '<div class="col-name"></div>' +
     '<div class="col-meta"></div>';
   return el;
@@ -182,7 +183,15 @@ function updateCol(col, c, rank, maxVotes) {
 
   let pct = maxVotes > 0 ? c.votes / maxVotes * 100 : 0;
   if (c.votes > 0 && pct < 4) pct = 4;
+  el.style.setProperty('--h', pct + '%');
   el.querySelector('.col-fill').style.height = pct + '%';
+
+  // 台面倒影高度跟随柱高
+  const track = el.querySelector('.col-track');
+  const refl = el.querySelector('.col-refl');
+  requestAnimationFrame(() => {
+    refl.style.height = Math.round(track.clientHeight * pct / 100 * 0.4) + 'px';
+  });
 
   const numEl = el.querySelector('.col-num b');
   const grew = col.votes >= 0 && c.votes > col.votes;
@@ -194,6 +203,16 @@ function updateCol(col, c, rank, maxVotes) {
     setTimeout(() => numEl.classList.remove('pop'), 500);
   }
   col.votes = c.votes;
+
+  // 名次上升：整柱闪光一次
+  const prevRank = el.dataset.prevRank ? +el.dataset.prevRank : 0;
+  if (prevRank && rank < prevRank && !prefersReducedMotion()) {
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 950);
+  }
+  el.dataset.prevRank = rank;
 }
 
 function renderChart(list) {
@@ -370,6 +389,20 @@ function drawTrend() {
 }
 
 window.addEventListener('resize', drawTrend);
+
+/* 底部音频均衡器跳动带（纯装饰） */
+(function buildEq() {
+  const eq = document.getElementById('eq');
+  if (!eq || prefersReducedMotion()) return;
+  let html = '';
+  for (let i = 0; i < 44; i++) {
+    html += '<i style="--a:' + (0.08 + Math.random() * 0.25).toFixed(2) +
+      ';--b:' + (0.35 + Math.random() * 0.65).toFixed(2) +
+      ';animation-duration:' + (0.5 + Math.random() * 0.9).toFixed(2) +
+      's;animation-delay:-' + Math.random().toFixed(2) + 's"></i>';
+  }
+  eq.innerHTML = html;
+})();
 
 /* ---------- 最新投票 ---------- */
 let lastFeedKey = '';

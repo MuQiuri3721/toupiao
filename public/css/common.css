@@ -60,7 +60,7 @@ input, select { font-family: inherit; }
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-  .dec-layer, .shooting-star, .bg-note, .grain { display: none !important; }
+  .dec-layer, .shooting-star, .bg-note, .grain, .eq { display: none !important; }
 }
 
 /* 尊重系统"减少透明度"：毛玻璃退化为实色 */
