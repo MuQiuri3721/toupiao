@@ -24,16 +24,18 @@ async function fetchJSON(url, opts = {}) {
   return data;
 }
 
-/* ===== SSE 实时订阅（自动重连） ===== */
-function connectEvents(handler) {
+/* ===== SSE 实时订阅（自动重连；onStatus 用于页面显示断线提示） ===== */
+function connectEvents(handler, onStatus) {
   let es = null, stopped = false;
   function open() {
     es = new EventSource('/api/events');
+    es.onopen = () => { if (onStatus) onStatus(true); };
     es.onmessage = e => {
-      try { handler(JSON.parse(e.data)); } catch (_) {}
+      try { handler(JSON.parse(e.data)); } catch (err) { console.warn('事件处理异常:', err.message); }
     };
     es.onerror = () => {
       es.close();
+      if (onStatus) onStatus(false);
       if (!stopped) setTimeout(open, 2000);
     };
   }

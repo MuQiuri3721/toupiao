@@ -65,10 +65,13 @@ function renderList() {
     $list.innerHTML = '<div class="empty">暂无选手信息</div>';
     return;
   }
-  // 展示顺序保持添加顺序，方便选手找到自己
+  // 展示顺序保持添加顺序，方便选手找到自己；名次实时标注在名字旁
+  const rankMap = {};
+  S.contestants.forEach((c, i) => { rankMap[c.id] = i + 1; });
   const enter = firstListRender;   // 仅首次加载播放入场动画
   $list.innerHTML = S.contestants.map((c, i) => {
     const st = buttonState(c);
+    const rk = rankMap[c.id];
     const photo = c.photoRev
       ? '<img src="/api/photo/' + c.id + '?v=' + c.photoRev + '" alt="">'
       : esc((c.name || '?').slice(0, 1));
@@ -78,6 +81,7 @@ function renderList() {
         '<div class="avatar" style="background:' + avatarColor(c.name) + '">' + photo + '</div>' +
         '<div class="info">' +
           '<div class="name-row"><span class="name">' + esc(c.name) + '</span>' +
+          '<span class="rank-badge' + (rk <= 3 ? ' t' + rk : '') + '" data-id="' + c.id + '">#' + rk + '</span>' +
           '<span class="klass">' + esc(c.className) + '</span></div>' +
           '<div class="song">' + esc(c.song) + '</div>' +
           '<div class="votes-row">' +
@@ -117,6 +121,7 @@ function render() {
 }
 
 /* SSE：别人投票时，票数原地跳动，不重建整页 */
+const $connBadge = document.getElementById('connBadge');
 connectEvents(d => {
   if (d.type !== 'sync') return;
   const prevVotes = {};
@@ -130,9 +135,19 @@ connectEvents(d => {
     const el = document.getElementById('votes-' + c.id);
     if (el) countUp(el.querySelector('b'), c.votes, prevVotes[c.id]);
   }
+  // 实时名次徽章
+  const rankMap = {};
+  S.contestants.forEach((c, i) => { rankMap[c.id] = i + 1; });
+  document.querySelectorAll('.rank-badge').forEach(b => {
+    const rk = rankMap[b.dataset.id];
+    if (rk) {
+      b.textContent = '#' + rk;
+      b.className = 'rank-badge' + (rk <= 3 ? ' t' + rk : '');
+    }
+  });
   // 规则/状态变化会影响按钮，此时重建列表；纯票数变化保持页面稳定
   if (statusChanged) renderList();
-});
+}, ok => { if ($connBadge) $connBadge.hidden = ok; });
 
 /* 投票 */
 $list.addEventListener('click', async e => {

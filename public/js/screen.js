@@ -421,6 +421,76 @@ function renderFeed(latest) {
 }
 
 /* ---------- 总入口 ---------- */
+/* ---------- 全屏特效：彩带 / 里程碑横幅 ---------- */
+
+const $fx = document.getElementById('fx');
+const $milestone = document.getElementById('milestone');
+const $connBadge = document.getElementById('connBadge');
+let fxParts = [], fxBusy = false, fxLastT = 0, lastBurstAt = 0;
+
+function fxResize() {
+  const dpr = window.devicePixelRatio || 1;
+  $fx.width = innerWidth * dpr;
+  $fx.height = innerHeight * dpr;
+  $fx.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', fxResize);
+fxResize();
+
+const FX_COLORS = ['#ffd166', '#ff8fc8', '#a78bfa', '#7ce8c4', '#8ec5ff', '#ffffff'];
+
+function confettiBurst(strength) {
+  if (prefersReducedMotion()) return;
+  strength = strength || 1;
+  const n = Math.round(110 * strength);
+  for (let i = 0; i < n; i++) {
+    fxParts.push({
+      x: Math.random() * innerWidth,
+      y: -20 - Math.random() * innerHeight * 0.35,
+      w: 5 + Math.random() * 6,
+      h: 8 + Math.random() * 8,
+      vy: 2 + Math.random() * 2.6,
+      vx: (Math.random() - 0.5) * 2.2,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.24,
+      color: FX_COLORS[i % FX_COLORS.length]
+    });
+  }
+  if (!fxBusy) { fxBusy = true; fxLastT = 0; requestAnimationFrame(fxFrame); }
+}
+
+function fxFrame(t) {
+  const dt = fxLastT ? Math.min(48, t - fxLastT) : 16;
+  fxLastT = t;
+  const ctx = $fx.getContext('2d');
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  fxParts = fxParts.filter(p => p.y < innerHeight + 30);
+  if (!fxParts.length) { fxBusy = false; return; }
+  const k = dt / 16.7;
+  for (const p of fxParts) {
+    p.y += p.vy * k;
+    p.x += p.vx * k;
+    p.rot += p.vr * k;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
+  }
+  requestAnimationFrame(fxFrame);
+}
+
+let milestoneTimer = null;
+function showMilestone(total) {
+  $milestone.textContent = '🎉 累计票数突破 ' + total + '！';
+  $milestone.hidden = false;
+  requestAnimationFrame(() => $milestone.classList.add('show'));
+  confettiBurst(1.6);
+  clearTimeout(milestoneTimer);
+  milestoneTimer = setTimeout(() => $milestone.classList.remove('show'), 3400);
+}
+
 function apply(d) {
   S = d;
   $title.textContent = d.title;
@@ -447,9 +517,32 @@ function apply(d) {
   renderChart(d.contestants);
   renderFeed(d.latest);
   pushTrend(d.totalVotes);
+
+  // 被反超 → 撒彩带（6 秒节流，避免胶着时刷屏）
+  const prevRanks = apply._ranks || null;
+  if (prevRanks) {
+    let overtaken = false;
+    d.contestants.forEach((c, i) => {
+      const pr = prevRanks[c.id];
+      if (pr && pr > i + 1) overtaken = true;
+    });
+    if (overtaken && Date.now() - lastBurstAt > 6000) {
+      lastBurstAt = Date.now();
+      confettiBurst(0.7);
+    }
+  }
+  apply._ranks = {};
+  d.contestants.forEach((c, i) => { apply._ranks[c.id] = i + 1; });
+
+  // 票数里程碑（每 500 票）→ 全屏横幅 + 大彩带
+  const level = Math.floor(d.totalVotes / 500);
+  if (d.totalVotes > 0 && level > (apply._mlv || 0)) {
+    showMilestone(level * 500);
+  }
+  apply._mlv = Math.max(level, apply._mlv || 0);
 }
 
-connectEvents(apply);
+connectEvents(apply, ok => { if ($connBadge) $connBadge.hidden = ok; });
 
 // SSE 之外再做一次初始拉取，双保险
 fetchJSON('/api/state').then(apply).catch(() => {});

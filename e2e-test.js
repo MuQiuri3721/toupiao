@@ -99,7 +99,8 @@ async function main() {
   const csv = await req('/api/admin/export', { token: T });
   check('CSV 可导出', csv.status === 200);
   check('CSV 带 BOM(Excel 中文不乱码)', csv.text.charCodeAt(0) === 0xFEFF);
-  check('CSV 行数 = 选手数 + 表头', csv.text.trim().split('\r\n').length === ov.json.contestants.length + 1);
+  check('CSV 包含排名表头', /"名次","姓名","班级","曲目","票数"/.test(csv.text));
+  check('CSV 包含投票明细段', /"投票明细"/.test(csv.text) && /"设备指纹"/.test(csv.text));
   const csvNoAuth = await req('/api/admin/export');
   check('无 token 导出被拒(401)', csvNoAuth.status === 401);
 
@@ -141,6 +142,8 @@ async function main() {
   const stC = await req('/api/state?device=' + devC);
   check('该设备剩余票数为 0', stC.json.device.remaining === 0);
   await req('/api/admin/settings', { method: 'POST', token: T, body: { votesPerDevice: 3 } });
+  const audit = await req('/api/admin/overview', { token: T });
+  check('真实投票审计计数增长(模拟票不计入)', audit.json.stats.realVotes > 0, 'realVotes=' + (audit.json.stats.realVotes || 0));
 
   /* ---------- F. 非法输入 ---------- */
   console.log('[F] 非法输入');

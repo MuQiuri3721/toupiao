@@ -530,6 +530,49 @@ body {
   25% { filter: brightness(1.8) saturate(1.35); }
 }
 
+/* ===== 全屏特效层：彩带 / 里程碑横幅 / 连接角标 ===== */
+#fx {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.milestone {
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-18px);
+  z-index: 5;
+  padding: 14px 42px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, rgba(196, 106, 222, .94), rgba(255, 143, 200, .94));
+  border: 1px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 12px 44px rgba(233, 120, 200, .6);
+  color: #fff;
+  font-family: 'KaiTi', 'STKaiti', '楷体', 'Noto Serif SC', serif;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .45s ease, transform .45s cubic-bezier(.22, 1, .36, 1);
+}
+.milestone.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.conn-badge {
+  position: fixed;
+  right: 14px;
+  bottom: 12px;
+  z-index: 6;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #ffd9f1;
+  background: rgba(120, 40, 90, .78);
+  border: 1px solid rgba(255, 182, 230, .4);
+  padding: 5px 13px;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
 /* ===== 台面：光线 + 倒影 + 均衡器 ===== */
 .col-floor {
   position: relative;

@@ -16,6 +16,7 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_DIR = path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
+const BACKUP_FILE = path.join(DATA_DIR, 'data.backup.json');
 
 /* ============================== 数据 ============================== */
 
@@ -60,7 +61,8 @@ function defaultState() {
       updatedAt: now
     })),
     devices: {},   // deviceId -> { used, targets: {contestantId: n} }
-    latest: []     // 最近投票记录 [{ name, ts }]
+    latest: [],    // 最近投票记录 [{ name, ts }]
+    voteLog: []    // 真实投票审计日志 [{ t, d(设备指纹), c(选手id) }]，模拟投票不记录
   };
 }
 
@@ -73,8 +75,20 @@ function loadData() {
     if (!Array.isArray(state.contestants)) state.contestants = [];
     if (!state.devices || typeof state.devices !== 'object') state.devices = {};
     if (!Array.isArray(state.latest)) state.latest = [];
-  } catch (_) {
-    state = defaultState();
+    if (!Array.isArray(state.voteLog)) state.voteLog = [];
+  } catch (err) {
+    // 主文件损坏时尝试从备份恢复
+    let recovered = false;
+    try {
+      const raw = JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
+      state = Object.assign(defaultState(), raw);
+      state.settings = Object.assign(defaultState().settings, raw.settings || {});
+      if (!Array.isArray(state.voteLog)) state.voteLog = [];
+      recovered = true;
+    } catch (_) {}
+    if (!recovered) state = defaultState();
+    console.error('[数据] 读取 data.json 失败(' + err.message + ')' +
+      (recovered ? '，已从备份 data.backup.json 恢复' : '，使用全新数据'));
   }
   refreshAdminToken();
 }
@@ -88,6 +102,8 @@ function saveNow() {
   clearTimeout(saveTimer);
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    // 先备份上一份，再写新数据（防写入中途断电/崩溃损坏）
+    if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, BACKUP_FILE);
     fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 1));
   } catch (e) {
     console.error('[数据保存失败]', e.message);
@@ -211,6 +227,13 @@ function castVote(cid, deviceId, ip) {
   c.votes++;
   state.latest.unshift({ name: c.name, ts: Date.now() });
   state.latest = state.latest.slice(0, 10);
+  // 审计日志：设备指纹只存哈希前 10 位（可对账、不泄露原 ID），上限 2 万条
+  state.voteLog.push({
+    t: Date.now(),
+    d: crypto.createHash('sha256').update(deviceId).digest('hex').slice(0, 10),
+    c: cid
+  });
+  if (state.voteLog.length > 20000) state.voteLog.splice(0, state.voteLog.length - 20000);
   dirty = true;
   save();
   return {
@@ -333,6 +356,8 @@ function handleSSE(req, res) {
   req.on('close', () => sseClients.delete(res));
 }
 
+const photoCache = new Map();   // id@updatedAt -> Buffer，避免每次请求重复解码 base64
+
 function handlePhoto(res, id) {
   const c = state.contestants.find(x => x.id === id);
   if (!c || !c.photo || !c.photo.startsWith('data:')) {
@@ -340,17 +365,32 @@ function handlePhoto(res, id) {
   }
   const m = c.photo.match(/^data:(image\/[a-z+]+);base64,(.+)$/);
   if (!m) { res.writeHead(404); res.end(); return; }
+  const key = id + '@' + c.updatedAt;
+  let buf = photoCache.get(key);
+  if (!buf) {
+    buf = Buffer.from(m[2], 'base64');
+    if (photoCache.size > 120) photoCache.clear();
+    photoCache.set(key, buf);
+  }
   res.writeHead(200, {
     'Content-Type': m[1],
     'Cache-Control': 'public, max-age=86400'
   });
-  res.end(Buffer.from(m[2], 'base64'));
+  res.end(buf);
 }
 
 function exportCSV(res) {
   const sorted = [...state.contestants].sort((a, b) => b.votes - a.votes);
   const rows = [['名次', '姓名', '班级', '曲目', '票数']];
   sorted.forEach((c, i) => rows.push([String(i + 1), c.name, c.className, c.song, String(c.votes)]));
+  // 追加真实投票明细（审计用），模拟投票不计入
+  rows.push([]);
+  rows.push(['投票明细', '共 ' + state.voteLog.length + ' 条']);
+  rows.push(['时间', '设备指纹', '选手']);
+  const nameOf = id => { const c = state.contestants.find(x => x.id === id); return c ? c.name : id; };
+  for (const v of state.voteLog) {
+    rows.push([new Date(v.t).toLocaleString('zh-CN'), v.d, nameOf(v.c)]);
+  }
   const csv = '\uFEFF' + rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
   res.writeHead(200, {
     'Content-Type': 'text/csv; charset=utf-8',
@@ -387,7 +427,8 @@ async function handleAdmin(req, res, pathname, query) {
         stats: {
           totalVotes: total,
           contestants: state.contestants.length,
-          devices: Object.keys(state.devices).length
+          devices: Object.keys(state.devices).length,
+          realVotes: state.voteLog.length
         },
         lanUrl: voteBaseUrl() + '/',
         publicMode: !!String(s.publicUrl || '').trim(),
@@ -472,6 +513,7 @@ async function handleAdmin(req, res, pathname, query) {
       for (const c of state.contestants) c.votes = 0;
       state.devices = {};
       state.latest = [];
+      state.voteLog = [];
       dirty = true; save();
       return json(res, 200, { ok: true });
     }
