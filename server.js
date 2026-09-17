@@ -323,9 +323,13 @@ function isAdmin(req) {
 
 function serveFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
+  // html/js/css 一律 no-cache：系统迭代后客户端刷新即取最新，杜绝混版本
+  const cache = (ext === '.html' || ext === '.js' || ext === '.css')
+    ? 'no-cache'
+    : 'public, max-age=3600';
   res.writeHead(200, {
     'Content-Type': MIME[ext] || 'application/octet-stream',
-    'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
+    'Cache-Control': cache
   });
   fs.createReadStream(filePath).pipe(res);
 }
