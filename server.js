@@ -17,6 +17,7 @@ const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_DIR = path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const BACKUP_FILE = path.join(DATA_DIR, 'data.backup.json');
+const VOTELOG_FILE = path.join(DATA_DIR, 'votes.log');
 
 /* ============================== 数据 ============================== */
 
@@ -83,17 +84,29 @@ function loadData() {
       const raw = JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
       state = Object.assign(defaultState(), raw);
       state.settings = Object.assign(defaultState().settings, raw.settings || {});
-      if (!Array.isArray(state.voteLog)) state.voteLog = [];
       recovered = true;
     } catch (_) {}
     if (!recovered) state = defaultState();
     console.error('[数据] 读取 data.json 失败(' + err.message + ')' +
       (recovered ? '，已从备份 data.backup.json 恢复' : '，使用全新数据'));
   }
+  if (!Array.isArray(state.voteLog)) state.voteLog = [];
+  // 投票明细单独存文件（追加写，重启时读回）
+  try {
+    if (fs.existsSync(VOTELOG_FILE)) {
+      const rows = fs.readFileSync(VOTELOG_FILE, 'utf8').split('\n');
+      state.voteLog = [];
+      for (const line of rows) {
+        if (!line.trim()) continue;
+        try { state.voteLog.push(JSON.parse(line)); } catch (_) {}
+      }
+    }
+  } catch (_) {}
   refreshAdminToken();
 }
 
 let saveTimer = null;
+let lastBackupAt = 0;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 300);
@@ -102,12 +115,22 @@ function saveNow() {
   clearTimeout(saveTimer);
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    // 先备份上一份，再写新数据（防写入中途断电/崩溃损坏）
-    if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, BACKUP_FILE);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 1));
+    // voteLog 单独存放，data.json 保持小体积；备份最多 30 秒一次
+    const body = JSON.stringify(state, (k, v) => (k === 'voteLog' ? undefined : v), 1);
+    if (fs.existsSync(DATA_FILE) && Date.now() - lastBackupAt > 30000) {
+      fs.copyFileSync(DATA_FILE, BACKUP_FILE);
+      lastBackupAt = Date.now();
+    }
+    fs.writeFileSync(DATA_FILE, body);
   } catch (e) {
     console.error('[数据保存失败]', e.message);
   }
+}
+
+function appendVoteLog(entry) {
+  try {
+    fs.appendFileSync(VOTELOG_FILE, JSON.stringify(entry) + '\n');
+  } catch (e) { console.error('[日志写入失败]', e.message); }
 }
 
 function refreshAdminToken() {
@@ -120,13 +143,22 @@ function refreshAdminToken() {
 
 const sseClients = new Set();
 let dirty = false;
+let lastBroadcastAt = 0;
 
-// 票数频繁变化时合并推送，150ms 刷新一次即可保证“实时感”
+// 推送节流：按在线观众规模自适应刷新间隔（人越多越省带宽，依然保持实时感）
+function broadcastInterval() {
+  const n = sseClients.size;
+  if (n > 200) return 800;
+  if (n > 60) return 400;
+  return 150;
+}
 setInterval(() => {
   if (!dirty) return;
+  if (Date.now() - lastBroadcastAt < broadcastInterval()) return;
   dirty = false;
+  lastBroadcastAt = Date.now();
   pushToAll();
-}, 150);
+}, 100);
 
 // 心跳，防止中间设备断开空闲连接
 setInterval(() => {
@@ -228,12 +260,14 @@ function castVote(cid, deviceId, ip) {
   state.latest.unshift({ name: c.name, ts: Date.now() });
   state.latest = state.latest.slice(0, 10);
   // 审计日志：设备指纹只存哈希前 10 位（可对账、不泄露原 ID），上限 2 万条
-  state.voteLog.push({
+  const entry = {
     t: Date.now(),
     d: crypto.createHash('sha256').update(deviceId).digest('hex').slice(0, 10),
     c: cid
-  });
+  };
+  state.voteLog.push(entry);
   if (state.voteLog.length > 20000) state.voteLog.splice(0, state.voteLog.length - 20000);
+  appendVoteLog(entry);
   dirty = true;
   save();
   return {
@@ -321,20 +355,62 @@ function isAdmin(req) {
   return req.headers['x-admin-token'] === adminToken;
 }
 
-function serveFile(res, filePath) {
+const zlib = require('zlib');
+
+const staticCache = new Map();   // filePath -> { mtimeMs, raw, gz, lastModified }
+
+function serveFile(req, res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
-  // html/js/css 一律 no-cache：系统迭代后客户端刷新即取最新，杜绝混版本
-  const cache = (ext === '.html' || ext === '.js' || ext === '.css')
+  const compressible = ['.html', '.js', '.css', '.json', '.svg'].includes(ext);
+  let stat;
+  try { stat = fs.statSync(filePath); } catch (_) { res.writeHead(404); res.end(); return; }
+
+  // 协商缓存：文件没变直接 304，几百字节搞定一次页面加载
+  const lastModified = new Date(Math.floor(stat.mtimeMs / 1000) * 1000).toUTCString();
+  const ims = req.headers['if-modified-since'];
+  if (ims && new Date(ims).getTime() === Math.floor(stat.mtimeMs / 1000) * 1000) {
+    res.writeHead(304, { 'Last-Modified': lastModified });
+    res.end();
+    return;
+  }
+
+  // html/js/css 每次向服务器校验新鲜度（改动即时生效，未变则 304 秒回）
+  const cache = compressible
     ? 'no-cache'
     : 'public, max-age=3600';
-  res.writeHead(200, {
+  const headers = {
     'Content-Type': MIME[ext] || 'application/octet-stream',
-    'Cache-Control': cache
-  });
+    'Cache-Control': cache,
+    'Last-Modified': lastModified
+  };
+
+  if (compressible) {
+    let entry = staticCache.get(filePath);
+    if (!entry || entry.mtimeMs !== stat.mtimeMs) {
+      const raw = fs.readFileSync(filePath);
+      entry = { mtimeMs: stat.mtimeMs, raw, gz: zlib.gzipSync(raw, { level: 6 }) };
+      if (staticCache.size > 60) staticCache.clear();
+      staticCache.set(filePath, entry);
+    }
+    if ((req.headers['accept-encoding'] || '').includes('gzip')) {
+      headers['Content-Encoding'] = 'gzip';
+      headers['Content-Length'] = entry.gz.length;
+      res.writeHead(200, headers);
+      res.end(entry.gz);
+      return;
+    }
+    headers['Content-Length'] = entry.raw.length;
+    res.writeHead(200, headers);
+    res.end(entry.raw);
+    return;
+  }
+
+  // 图片等大文件照旧流式发送
+  res.writeHead(200, headers);
   fs.createReadStream(filePath).pipe(res);
 }
 
-function serveStatic(res, pathname) {
+function serveStatic(req, res, pathname) {
   let p = pathname === '/' ? '/vote.html' : pathname;
   if (p === '/screen') p = '/screen.html';
   if (p === '/admin') p = '/admin.html';
@@ -344,7 +420,7 @@ function serveStatic(res, pathname) {
     res.end('<meta charset="utf-8"><body style="font-family:sans-serif;text-align:center;padding-top:80px"><h1>404</h1><p>页面不存在</p><p><a href="/">返回投票页</a></p></body>');
     return;
   }
-  serveFile(res, fp);
+  serveFile(req, res, fp);
 }
 
 function handleSSE(req, res) {
@@ -518,6 +594,7 @@ async function handleAdmin(req, res, pathname, query) {
       state.devices = {};
       state.latest = [];
       state.voteLog = [];
+      try { fs.writeFileSync(VOTELOG_FILE, ''); } catch (_) {}
       dirty = true; save();
       return json(res, 200, { ok: true });
     }
@@ -573,7 +650,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return json(res, 405, { error: '方法不允许' });
     }
-    serveStatic(res, pathname);
+    serveStatic(req, res, pathname);
   } catch (e) {
     console.error('[服务器错误]', e);
     if (!res.headersSent) json(res, 500, { error: '服务器内部错误' });
