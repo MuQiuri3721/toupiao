@@ -188,10 +188,48 @@ function lanAddress() {
   return best || '127.0.0.1';
 }
 
+/* ============================== 部署模式（可选 config.json） ============================== */
+// 云服务器部署时，在项目根目录创建 config.json：{"mode":"cloud"}
+// 系统会自动识别服务器公网 IP 并用于二维码/地址（学生用流量也能访问）
+let config = {};
+try { config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8')); } catch (_) {}
+const CLOUD_MODE = config.mode === 'cloud';
+
+let publicIp = '';
+async function detectPublicIp() {
+  const endpoints = [
+    ['https://ip.3322.net', t => t.trim()],
+    ['https://myip.ipip.net', t => (t.match(/(\d{1,3}(?:\.\d{1,3}){3})/) || [])[1] || ''],
+    ['https://api.ipify.org?format=json', t => { try { return JSON.parse(t).ip; } catch (_) { return ''; } }]
+  ];
+  for (const [url, parse] of endpoints) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const ip = parse(await res.text());
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return ip;
+    } catch (_) {}
+  }
+  return '';
+}
+async function ensurePublicIp() {
+  if (!CLOUD_MODE || publicIp) return;
+  publicIp = await detectPublicIp();
+  if (publicIp) {
+    console.log('[网络] 云模式：已识别公网 IP ' + publicIp + '，二维码/地址已切换为公网版');
+    pushToAll();
+  } else {
+    console.log('[网络] 云模式：公网 IP 识别失败，稍后自动重试');
+  }
+}
+ensurePublicIp();
+setInterval(ensurePublicIp, 300000);   // 未识别成功则每 5 分钟重试
+
 function voteBaseUrl() {
-  // 配置了外网地址（内网穿透）时优先使用，学生用流量/微信也能访问
+  // 优先级：后台手动填写的地址 > 云模式自动识别的公网 IP > 局域网地址
   const pub = String(state.settings.publicUrl || '').trim().replace(/\/+$/, '');
-  return pub || ('http://' + lanAddress() + ':' + PORT);
+  if (pub) return pub;
+  if (CLOUD_MODE && publicIp) return 'http://' + publicIp + ':' + PORT;
+  return 'http://' + lanAddress() + ':' + PORT;
 }
 
 function snapshot() {
@@ -203,7 +241,7 @@ function snapshot() {
     status: state.settings.status,
     votesPerDevice: state.settings.votesPerDevice,
     allowRepeat: state.settings.allowRepeat,
-    publicMode: !!String(state.settings.publicUrl || '').trim(),
+    publicMode: !!String(state.settings.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
     totalVotes: total,
     contestantCount: state.contestants.length,
     deviceCount: Object.keys(state.devices).length,
@@ -511,7 +549,7 @@ async function handleAdmin(req, res, pathname, query) {
           realVotes: state.voteLog.length
         },
         lanUrl: voteBaseUrl() + '/',
-        publicMode: !!String(s.publicUrl || '').trim(),
+        publicMode: !!String(s.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
         simulating: !!simTimer,
         simSpeed
       });

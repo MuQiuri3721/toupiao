@@ -3,3 +3,4 @@ data/
 server.log
 *.log
 .zcode/
+config.json
