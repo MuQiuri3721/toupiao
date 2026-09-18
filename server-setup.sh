@@ -12,7 +12,7 @@
 set -e
 
 APP_DIR=/opt/vote
-PORT=3000
+PORT=8010
 
 echo "==> 1/5 检查并安装 Node.js（已装则跳过）"
 if ! command -v node >/dev/null 2>&1; then
