@@ -407,7 +407,7 @@ window.addEventListener('resize', drawTrend);
   const eq = document.getElementById('eq');
   if (!eq || prefersReducedMotion()) return;
   let html = '';
-  for (let i = 0; i < 44; i++) {
+  for (let i = 0; i < 30; i++) {
     html += '<i style="--a:' + (0.08 + Math.random() * 0.25).toFixed(2) +
       ';--b:' + (0.35 + Math.random() * 0.65).toFixed(2) +
       ';animation-duration:' + (0.5 + Math.random() * 0.9).toFixed(2) +

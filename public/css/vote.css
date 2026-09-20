@@ -33,17 +33,22 @@ body {
   position: relative;
   z-index: 1;
   overflow: hidden;
-  background: linear-gradient(135deg, #b78cff 0%, #f78fc5 28%, #ffb3c9 52%, #d3a0f5 76%, #b78cff 100%);
-  background-size: 320% 320%;
-  animation: heroShift 14s ease-in-out infinite;
+  background: #c084fc;
   color: #fff;
   padding: 36px 18px 28px;
   border-radius: 0 0 30px 30px;
   box-shadow: 0 14px 40px rgba(233, 154, 214, .45);
 }
 @keyframes heroShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  from { transform: translateX(-4%); }
+  to { transform: translateX(4%); }
+}
+.hero-bg {
+  position: absolute;
+  inset: -12% -8%;
+  background: linear-gradient(120deg, #b78cff 0%, #f78fc5 32%, #ffb3c9 58%, #d3a0f5 82%, #b78cff 100%);
+  will-change: transform;
+  animation: heroShift 16s ease-in-out infinite alternate;
 }
 .hero::after {
   content: '';
@@ -112,7 +117,7 @@ body {
   border-radius: 16px;
   font-size: 14px;
   text-align: center;
-  background: rgba(255, 255, 255, .72);
+  background: rgba(255, 255, 255, .95);
   color: #a873b8;
   border: 1px solid rgba(233, 180, 230, .5);
   backdrop-filter: blur(8px);
@@ -129,8 +134,7 @@ body {
   gap: 10px;
   margin: 14px 14px 0;
   padding: 13px 18px;
-  background: rgba(255, 255, 255, .78);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, .93);
   border: 1px solid rgba(255, 255, 255, .95);
   border-radius: 20px;
   box-shadow: 0 8px 26px rgba(196, 140, 255, .16);
@@ -176,8 +180,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, .82);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, .95);
   border: 1px solid rgba(255, 255, 255, .95);
   border-radius: 22px;
   padding: 15px;

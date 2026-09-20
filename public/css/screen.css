@@ -10,21 +10,28 @@ body {
   flex-direction: column;
 }
 
-/* ===== 梦幻背景 ===== */
+/* ===== 梦幻背景（径向渐变代替实时模糊，大幅降低 GPU 负担） ===== */
 .bg-glow {
   position: fixed;
-  border-radius: 50%;
-  filter: blur(110px);
-  opacity: .5;
+  width: 900px;
+  height: 900px;
   pointer-events: none;
   z-index: 0;
-  animation: glowDrift 20s ease-in-out infinite alternate;
+  opacity: .55;
+  animation: glowBreathe 14s ease-in-out infinite alternate;
 }
-.bg-glow.g1 { width: 540px; height: 540px; background: #ff9ecb; top: -200px; left: -140px; }
-.bg-glow.g2 { width: 640px; height: 640px; background: #8b5cf6; bottom: -260px; right: -180px; animation-delay: -10s; }
-@keyframes glowDrift {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(70px, 46px) scale(1.16); }
+.bg-glow.g1 {
+  background: radial-gradient(circle, rgba(255, 158, 205, .5) 0%, rgba(255, 158, 205, 0) 62%);
+  top: -280px; left: -220px;
+}
+.bg-glow.g2 {
+  background: radial-gradient(circle, rgba(139, 92, 246, .55) 0%, rgba(139, 92, 246, 0) 62%);
+  bottom: -340px; right: -260px;
+  animation-delay: -7s;
+}
+@keyframes glowBreathe {
+  from { transform: scale(1); opacity: .4; }
+  to { transform: scale(1.12); opacity: .62; }
 }
 .bg-note {
   position: fixed;
@@ -42,14 +49,13 @@ body {
   50% { transform: translateY(-20px) rotate(12deg); }
 }
 
-/* 细腻噪点，增加画面质感（静态层，不参与动画） */
+/* 细腻噪点：低透明度平铺（不再用混合模式，避免整屏重合成） */
 .grain {
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: .05;
-  mix-blend-mode: overlay;
+  opacity: .035;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
 }
 
@@ -265,11 +271,10 @@ body {
   padding: 8px 11px;
   margin: 7px 3px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, .05);
+  background: rgba(30, 38, 72, .55);
   border: 1px solid rgba(255, 214, 240, .12);
   will-change: transform;
   position: relative;
-  backdrop-filter: blur(8px);
 }
 .row .rank {
   width: 36px;
@@ -324,10 +329,16 @@ body {
 .bar i::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 65%);
-  background-size: 240% 100%;
-  animation: shimmer 2.8s linear infinite;
+  top: 0;
+  bottom: 0;
+  left: -35%;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .4) 50%, transparent);
+  transform: translateX(-120%);
+  animation: barSheen 3.2s linear infinite;
+}
+@keyframes barSheen {
+  to { transform: translateX(430%); }
 }
 @keyframes shimmer {
   from { background-position: 135% 0; }
@@ -374,13 +385,19 @@ body {
 .col-fill::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
   border-radius: inherit;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .35) 50%, transparent 66%);
-  background-size: 240% 100%;
-  animation: shimmer 3s linear infinite;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .32) 50%, transparent);
+  transform: translateX(-120%);
+  animation: colSheen 3.6s linear infinite;
 }
-.col.top1 .col-fill::after { animation-duration: 2.2s; }
+.col.top1 .col-fill::after { animation-duration: 2.4s; }
+@keyframes colSheen {
+  to { transform: translateX(260%); }
+}
 
 .col-num b { display: inline-block; }
 .col-num b.pop { animation: numPop .45s cubic-bezier(.22, 1, .36, 1); }
@@ -520,11 +537,8 @@ body {
     linear-gradient(90deg, rgba(40, 24, 4, .38), rgba(40, 24, 4, 0) 22% 78%, rgba(40, 24, 4, .38)),
     linear-gradient(180deg, #ffe9b0 0%, #f5c66d 45%, #e8a94f 100%);
   box-shadow: 0 0 30px rgba(255, 216, 145, .65), inset 0 0 0 1px rgba(255, 255, 255, .3);
-  animation: top1Glow 2.4s ease-in-out infinite;
 }
-@keyframes top1Glow {
-  50% { box-shadow: 0 0 46px rgba(255, 216, 145, .95), inset 0 0 0 1px rgba(255, 255, 255, .45); }
-}
+
 .col.top1 .col-fill::before {
   background: linear-gradient(90deg, #fff7dc, #ffffff 50%, #ffe6a8);
   box-shadow: 0 0 22px 5px rgba(255, 216, 145, .9);
