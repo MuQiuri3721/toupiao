@@ -62,6 +62,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 /* ================= 控制台 ================= */
 
 let overview = null;
+let adminDeadlineAbs = 0;   // 投票截止时间的本地绝对时间戳
 
 function renderOverview() {
   if (!overview) return;
@@ -84,6 +85,18 @@ function renderOverview() {
   document.getElementById('voteUrl').textContent = url;
   document.getElementById('openVote').href = url;
   renderQR(document.getElementById('qrMini'), url, 4);
+
+  // 倒计时设置回填 + 剩余时间显示
+  document.getElementById('setVoteDur').value = settings.voteDurationMin || 0;
+  const cdLeft = document.getElementById('cdLeft');
+  if (settings.status === 'open' && overview.voteDeadlineLeftMs != null) {
+    adminDeadlineAbs = Date.now() + overview.voteDeadlineLeftMs;
+    cdLeft.hidden = false;
+    tickCdLeft();
+  } else {
+    adminDeadlineAbs = 0;
+    cdLeft.hidden = true;
+  }
 
   // 外网模式提示
   const pub = settings.publicUrl || '';
@@ -113,6 +126,13 @@ document.getElementById('simBtn').addEventListener('click', async () => {
     await loadOverview();
     toast(on ? '模拟投票已开启，看看大屏效果吧！' : '模拟投票已停止', 'success');
   } catch (err) { toast(err.message, 'error'); }
+});
+
+document.getElementById('celebrateBtn').addEventListener('click', async () => {
+  try {
+    await api('/api/admin/celebrate', {});
+    toast('🎉 已触发全屏撒花', 'success');
+  } catch (e) { toast(e.message, 'error'); }
 });
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
@@ -334,6 +354,7 @@ function fillSettings() {
   document.getElementById('setTitle').value = overview.settings.title;
   document.getElementById('setVotes').value = overview.settings.votesPerDevice;
   document.getElementById('setRepeat').checked = overview.settings.allowRepeat;
+  document.getElementById('setVoteDur').value = overview.settings.voteDurationMin || 0;
 }
 
 document.getElementById('saveSettings').addEventListener('click', async () => {
@@ -343,7 +364,8 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
     await api('/api/admin/settings', {
       title: document.getElementById('setTitle').value.trim(),
       votesPerDevice: votes,
-      allowRepeat: document.getElementById('setRepeat').checked
+      allowRepeat: document.getElementById('setRepeat').checked,
+      voteDurationMin: Number(document.getElementById('setVoteDur').value) || 0
     });
     await loadOverview();
     toast('设置已保存', 'success');

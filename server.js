@@ -39,6 +39,7 @@ const DEFAULT_CONTESTANTS = [
 
 let state = null;
 let adminToken = null;
+const loginFails = new Map();   // 登录失败计数（防爆破）
 
 function defaultState() {
   const now = Date.now();
@@ -49,6 +50,7 @@ function defaultState() {
       status: 'ready',        // ready 未开始 | open 投票中 | ended 已结束
       votesPerDevice: 3,      // 每台设备总共可投的票数
       allowRepeat: true,      // 是否允许多票投给同一位选手
+      voteDurationMin: 0,     // 投票倒计时分钟数，0=不限时
       publicUrl: '',          // 外网访问地址（内网穿透后填写，留空=仅局域网）
       adminPassword: '123456' // 管理后台密码，后台可修改
     },
@@ -63,6 +65,7 @@ function defaultState() {
     })),
     devices: {},   // deviceId -> { used, targets: {contestantId: n} }
     latest: [],    // 最近投票记录 [{ name, ts }]
+    voteDeadline: null,  // 投票截止时间戳（设置了时长并开始投票后生效）
     voteLog: []    // 真实投票审计日志 [{ t, d(设备指纹), c(选手id) }]，模拟投票不记录
   };
 }
@@ -160,6 +163,16 @@ setInterval(() => {
   pushToAll();
 }, 100);
 
+// 投票倒计时到点：自动截止投票
+setInterval(() => {
+  if (state.settings.status === 'open' && state.voteDeadline && Date.now() >= state.voteDeadline) {
+    state.settings.status = 'ended';
+    state.voteDeadline = null;
+    structureDirty = true; dirty = true; save();
+    console.log('[投票] 倒计时结束，已自动截止投票');
+  }
+}, 1000);
+
 // 心跳，防止中间设备断开空闲连接
 setInterval(() => {
   for (const res of sseClients) {
@@ -241,6 +254,7 @@ function snapshot() {
     status: state.settings.status,
     votesPerDevice: state.settings.votesPerDevice,
     allowRepeat: state.settings.allowRepeat,
+    voteDeadline: state.voteDeadline,
     publicMode: !!String(state.settings.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
     totalVotes: total,
     contestantCount: state.contestants.length,
@@ -266,6 +280,7 @@ function compactSnapshot() {
     status: state.settings.status,
     votesPerDevice: state.settings.votesPerDevice,
     allowRepeat: state.settings.allowRepeat,
+    voteDeadline: state.voteDeadline,
     publicMode: !!String(state.settings.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
     totalVotes: total,
     contestantCount: state.contestants.length,
@@ -547,12 +562,22 @@ async function handleAdmin(req, res, pathname, query) {
   const body = req.method === 'POST' ? await readBody(req) : {};
   const s = state.settings;
 
-  // 登录
+  // 登录（带防爆破：同 IP 连续错 5 次锁 10 分钟）
   if (pathname === '/api/admin/login') {
+    const lip = req.socket.remoteAddress || '';
+    const lr = loginFails.get(lip);
+    if (lr && lr.until > Date.now()) {
+      return json(res, 429, { error: '尝试次数过多，请 10 分钟后再试' });
+    }
     if (body.password === s.adminPassword) {
+      loginFails.delete(lip);
       refreshAdminToken();
       return json(res, 200, { ok: true, token: adminToken });
     }
+    const rec = loginFails.get(lip) || { n: 0 };
+    rec.n++;
+    if (rec.n >= 5) { rec.until = Date.now() + 600000; rec.n = 0; }
+    loginFails.set(lip, rec);
     return json(res, 401, { error: '密码错误' });
   }
 
@@ -565,6 +590,8 @@ async function handleAdmin(req, res, pathname, query) {
         settings: {
           title: s.title, status: s.status,
           votesPerDevice: s.votesPerDevice, allowRepeat: s.allowRepeat,
+          voteDurationMin: s.voteDurationMin || 0,
+          voteDeadlineLeftMs: (s.status === 'open' && state.voteDeadline) ? Math.max(0, state.voteDeadline - Date.now()) : null,
           publicUrl: s.publicUrl || ''
         },
         contestants: [...state.contestants].sort((a, b) => b.votes - a.votes),
@@ -576,6 +603,7 @@ async function handleAdmin(req, res, pathname, query) {
         },
         lanUrl: voteBaseUrl() + '/',
         publicMode: !!String(s.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
+        voteDeadlineLeftMs: (s.status === 'open' && state.voteDeadline) ? Math.max(0, state.voteDeadline - Date.now()) : null,
         simulating: !!simTimer,
         simSpeed
       });
@@ -625,6 +653,14 @@ async function handleAdmin(req, res, pathname, query) {
         if (Number.isInteger(n) && n >= 1 && n <= 99) s.votesPerDevice = n;
       }
       if (typeof body.allowRepeat === 'boolean') s.allowRepeat = body.allowRepeat;
+      if (body.voteDurationMin !== undefined) {
+        const n = Number(body.voteDurationMin);
+        if (Number.isInteger(n) && n >= 0 && n <= 600) s.voteDurationMin = n;
+        // 投票进行中调整时长：立即生效（改为 0 立即解除截止，改大/改小从现在起重新计时）
+        if (s.status === 'open') {
+          state.voteDeadline = n > 0 ? Date.now() + n * 60000 : null;
+        }
+      }
       if (body.publicUrl !== undefined) {
         const u = String(body.publicUrl || '').trim();
         if (u === '') s.publicUrl = '';
@@ -648,8 +684,21 @@ async function handleAdmin(req, res, pathname, query) {
     case '/api/admin/status': {
       if (!['ready', 'open', 'ended'].includes(body.status)) return json(res, 400, { error: '状态不合法' });
       s.status = body.status;
-      dirty = true; save();
+      if (body.status === 'open' && s.voteDurationMin > 0) {
+        state.voteDeadline = Date.now() + s.voteDurationMin * 60000;
+      } else {
+        state.voteDeadline = null;
+      }
+      structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true, status: s.status });
+    }
+
+    case '/api/admin/celebrate': {
+      const payload = 'data: ' + JSON.stringify({ type: 'celebrate' }) + '\n\n';
+      for (const res2 of sseClients) {
+        try { res2.write(payload); } catch (_) { sseClients.delete(res2); }
+      }
+      return json(res, 200, { ok: true });
     }
 
     case '/api/admin/reset': {

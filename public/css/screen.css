@@ -136,6 +136,31 @@ body {
   letter-spacing: 2px;
 }
 
+/* 投票倒计时 */
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(147, 197, 253, .12);
+  color: #bfdbfe;
+  border: 1px solid rgba(147, 197, 253, .32);
+  font-variant-numeric: tabular-nums;
+}
+.countdown b { font-size: 16px; font-weight: 800; color: #dbeafe; }
+.countdown.warn {
+  background: rgba(248, 113, 113, .16);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, .45);
+  animation: cdWarn 1s ease-in-out infinite;
+}
+.countdown.warn b { color: #fecaca; }
+@keyframes cdWarn {
+  50% { background: rgba(248, 113, 113, .32); }
+}
+
 .total-box { text-align: center; padding: 0 28px; }
 .total-num {
   font-size: clamp(32px, 3.8vw, 50px);

@@ -210,4 +210,17 @@ $list.addEventListener('click', async e => {
   voting = false;
 });
 
+/* 倒计时显示（投票进行中且设置了截止时间时） */
+const $cdText = document.getElementById('cdText');
+setInterval(() => {
+  if (!S || !S.voteDeadline || S.status !== 'open') { $cdText.hidden = true; return; }
+  const left = S.voteDeadline - Date.now();
+  if (left <= 0) { $cdText.hidden = true; return; }
+  const mm = Math.floor(left / 60000), ss = Math.floor(left % 60000 / 1000);
+  const p = x => String(x).padStart(2, '0');
+  $cdText.hidden = false;
+  $cdText.textContent = ' · 剩余 ' + p(mm) + ':' + p(ss);
+  $cdText.style.color = left <= 60000 ? '#ffb3c8' : '';
+}, 1000);
+
 refresh();

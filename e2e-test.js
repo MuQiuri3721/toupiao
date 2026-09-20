@@ -122,6 +122,20 @@ async function main() {
   v = await vote('c1', dev);
   check('第 4 票被拒(票数用完)', v.status === 403 && /用完/.test(v.json.error), v.json.error);
 
+  /* ---------- D2. 投票倒计时 ---------- */
+  console.log('[D2] 投票倒计时');
+  await req('/api/admin/settings', { method: 'POST', token: T, body: { voteDurationMin: 1 } });
+  await req('/api/admin/status', { method: 'POST', token: T, body: { status: 'ready' } });
+  await req('/api/admin/status', { method: 'POST', token: T, body: { status: 'open' } });
+  let stD2 = await req('/api/state');
+  check('开启投票时写入截止时间', !!stD2.json.voteDeadline, JSON.stringify(stD2.json.voteDeadline));
+  const devD = 'e2e-dev-cd-' + Date.now();
+  const vD2 = await vote('c6', devD);
+  check('倒计时期间可正常投票', vD2.status === 200, JSON.stringify(vD2));
+  await req('/api/admin/settings', { method: 'POST', token: T, body: { voteDurationMin: 0 } });
+  stD2 = await req('/api/state');
+  check('设置为不限时后截止时间清空', stD2.json.voteDeadline === null);
+
   /* ---------- E. 规则：防重复 + 票数上限 ---------- */
   console.log('[E] 投票规则');
   await req('/api/admin/settings', { method: 'POST', token: T, body: { allowRepeat: false } });
@@ -143,7 +157,8 @@ async function main() {
   check('该设备剩余票数为 0', stC.json.device.remaining === 0);
   await req('/api/admin/settings', { method: 'POST', token: T, body: { votesPerDevice: 3 } });
   const audit = await req('/api/admin/overview', { token: T });
-  check('真实投票审计计数增长(模拟票不计入)', audit.json.stats.realVotes > 0, 'realVotes=' + (audit.json.stats.realVotes || 0));
+  const rv = audit.json && audit.json.stats ? audit.json.stats.realVotes : null;
+  check('真实投票审计计数增长(模拟票不计入)', rv !== null && rv > 0, 'realVotes=' + rv);
 
   /* ---------- F. 非法输入 ---------- */
   console.log('[F] 非法输入');
@@ -222,6 +237,15 @@ async function main() {
   await Promise.all(Array.from({ length: CON }, bomber));
   check('超量请求被限速 429（拦截 ' + c429 + ' 个）', c429 > 500, '404×' + c404 + ' 429×' + c429 + ' other×' + cOther);
   check('限速只拦请求不产生票数', cOther === 0, 'other×' + cOther);
+
+  /* ---------- L. 登录防爆破 ---------- */
+  console.log('[L] 登录防爆破');
+  for (let i = 0; i < 5; i++) {
+    await req('/api/admin/login', { method: 'POST', body: { password: 'definitely-wrong-' + i } });
+  }
+  const rLock = await req('/api/admin/login', { method: 'POST', body: { password: '123456' } });
+  check('连续失败后登录被锁定', rLock.status === 429, 'HTTP ' + rLock.status);
+  console.log('  （IP 锁定 10 分钟，重启服务即清空）');
 
   /* ---------- 汇总 ---------- */
   console.log('\n===== 测试结果 =====');

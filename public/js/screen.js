@@ -21,17 +21,29 @@ const $qrBox = document.getElementById('qrBox');
 const $qrUrl = document.getElementById('qrUrl');
 const $statContestants = document.getElementById('statContestants');
 const $statDevices = document.getElementById('statDevices');
+const $countdown = document.getElementById('countdown');
+const $cdTime = document.getElementById('cdTime');
 const $trendCanvas = document.getElementById('trendChart');
 const $voteRate = document.getElementById('voteRate');
 
 const STATUS_TEXT = { ready: '未开始', open: '投票进行中', ended: '投票已结束' };
 
-/* 时钟 */
+/* 时钟 + 投票倒计时 */
 setInterval(() => {
   const d = new Date();
   const p = x => String(x).padStart(2, '0');
   $clock.textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
-}, 1000);
+  // 投票倒计时（投票进行中且设置了截止时间时显示）
+  if (S && S.voteDeadline && S.status === 'open') {
+    const left = Math.max(0, S.voteDeadline - Date.now());
+    $countdown.hidden = left <= 0;
+    const mm = Math.floor(left / 60000), ss = Math.floor(left % 60000 / 1000);
+    $cdTime.textContent = p(mm) + ':' + p(ss);
+    $countdown.classList.toggle('warn', left <= 60000);
+  } else {
+    $countdown.hidden = true;
+  }
+}, 500);
 
 /* 全屏 */
 document.getElementById('fsBtn').addEventListener('click', () => {
@@ -492,6 +504,8 @@ function showMilestone(total) {
 }
 
 function apply(d) {
+  // 里程碑/撒花等特效事件
+  if (d.type === 'celebrate') { confettiBurst(1.8); return; }
   // 紧凑帧：只含各选手最新票数，合并进本地已知数据并重新排序
   if (d.compact) {
     if (!S) { fetchJSON('/api/state').then(apply).catch(() => {}); return; }

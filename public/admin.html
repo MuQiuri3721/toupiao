@@ -49,7 +49,12 @@
         <button data-status="open">▶ 投票中</button>
         <button data-status="ended">🏁 已结束</button>
       </div>
-      <p class="hint">投票开始后，学生即可在投票页投票；「已结束」后仍可查看排名。</p>
+      <p class="hint" id="cdLeft" hidden></p>
+      <p class="hint">投票开始后，学生即可在投票页投票；「已结束」后仍可查看排名。设置了投票时长时，到点自动截止。</p>
+      <div class="ctl-row">
+        <button id="celebrateBtn" class="btn-ghost">🎉 全屏撒花</button>
+        <span class="hint" style="align-self:center;">大屏全屏彩带，宣布结果/暖场时用</span>
+      </div>
     </div>
 
     <div class="stats-row">
@@ -150,6 +155,9 @@
       <label class="set-check">
         <input id="setRepeat" type="checkbox">
         允许把多票投给同一位选手（取消勾选则每位选手限投 1 票）
+      </label>
+      <label class="set-label">投票倒计时（分钟，0 = 不限时；开始投票后到点自动截止）
+        <input id="setVoteDur" type="number" min="0" max="600" placeholder="0">
       </label>
       <button id="saveSettings" class="btn-primary">保存设置</button>
     </div>
