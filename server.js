@@ -254,8 +254,34 @@ function snapshot() {
   };
 }
 
+// 紧凑增量广播：只推每个选手的最新票数（载荷约为全量的 1/6，500 人在线也省带宽）
+function compactSnapshot() {
+  const votes = {};
+  for (const c of state.contestants) votes[c.id] = c.votes;
+  const total = state.contestants.reduce((s, c) => s + c.votes, 0);
+  return {
+    type: 'sync',
+    compact: true,
+    title: state.settings.title,
+    status: state.settings.status,
+    votesPerDevice: state.settings.votesPerDevice,
+    allowRepeat: state.settings.allowRepeat,
+    publicMode: !!String(state.settings.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
+    totalVotes: total,
+    contestantCount: state.contestants.length,
+    deviceCount: Object.keys(state.devices).length,
+    votes,
+    latest: state.latest.slice(0, 8),
+    lanUrl: voteBaseUrl() + '/'
+  };
+}
+
+let structureDirty = false;   // 选手增删改/标题等结构性变化 → 下次广播改发全量
+
 function pushToAll() {
-  const payload = 'data: ' + JSON.stringify(snapshot()) + '\n\n';
+  const snap = structureDirty ? snapshot() : compactSnapshot();
+  structureDirty = false;
+  const payload = 'data: ' + JSON.stringify(snap) + '\n\n';
   for (const res of sseClients) {
     try { res.write(payload); } catch (_) { sseClients.delete(res); }
   }
@@ -568,7 +594,7 @@ async function handleAdmin(req, res, pathname, query) {
         votes: 0,
         updatedAt: now
       });
-      dirty = true; save();
+      structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true });
     }
 
@@ -580,7 +606,7 @@ async function handleAdmin(req, res, pathname, query) {
       if (body.song != null) c.song = String(body.song).trim();
       if ('photo' in body) c.photo = (typeof body.photo === 'string' && body.photo.startsWith('data:')) ? body.photo : (body.photo === null ? null : c.photo);
       c.updatedAt = Date.now();
-      dirty = true; save();
+      structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true });
     }
 
@@ -588,7 +614,7 @@ async function handleAdmin(req, res, pathname, query) {
       const i = state.contestants.findIndex(x => x.id === body.id);
       if (i < 0) return json(res, 404, { error: '选手不存在' });
       state.contestants.splice(i, 1);
-      dirty = true; save();
+      structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true });
     }
 
@@ -605,7 +631,7 @@ async function handleAdmin(req, res, pathname, query) {
         else if (/^https?:\/\/.+/i.test(u)) s.publicUrl = u.replace(/\/+$/, '');
         else return json(res, 400, { error: '外网地址需以 http:// 或 https:// 开头' });
       }
-      dirty = true; save();
+      structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true });
     }
 
@@ -633,7 +659,7 @@ async function handleAdmin(req, res, pathname, query) {
       state.latest = [];
       state.voteLog = [];
       try { fs.writeFileSync(VOTELOG_FILE, ''); } catch (_) {}
-      dirty = true; save();
+      structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true });
     }
 

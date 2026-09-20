@@ -126,6 +126,14 @@ connectEvents(d => {
   if (d.type !== 'sync') return;
   const prevVotes = {};
   if (S) for (const c of S.contestants) prevVotes[c.id] = c.votes;
+  // 紧凑帧：只含最新票数，合并进本地已知选手数据并重新排序
+  if (d.compact && S) {
+    for (const c of S.contestants) {
+      if (d.votes && d.votes[c.id] != null) c.votes = d.votes[c.id];
+    }
+    d.contestants = S.contestants.slice().sort((a, b) => b.votes - a.votes || a.id.localeCompare(b.id));
+    d.latest = d.latest || S.latest;
+  }
   const statusChanged = !S || S.status !== d.status;
   S = d;
   $statusPill.className = 'status-pill ' + S.status;

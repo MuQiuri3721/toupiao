@@ -492,6 +492,15 @@ function showMilestone(total) {
 }
 
 function apply(d) {
+  // 紧凑帧：只含各选手最新票数，合并进本地已知数据并重新排序
+  if (d.compact) {
+    if (!S) { fetchJSON('/api/state').then(apply).catch(() => {}); return; }
+    for (const c of S.contestants) {
+      if (d.votes && d.votes[c.id] != null) c.votes = d.votes[c.id];
+    }
+    d.contestants = S.contestants.slice().sort((a, b) => b.votes - a.votes || a.id.localeCompare(b.id));
+    d.latest = d.latest || S.latest;
+  }
   S = d;
   $title.textContent = d.title;
   $statusBadge.className = 'status-badge ' + d.status;
