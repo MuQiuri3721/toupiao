@@ -379,7 +379,8 @@ function simulateOnce() {
 function setSimulate(on, speed) {
   if (speed && SIM_DELAY[speed]) simSpeed = speed;
   clearTimeout(simTimer);
-  if (on) tickSim();
+  simTimer = on ? setTimeout(tickSim, 100) : null;
+  if (!on) simTimer = null;
   save();
   return { on: !!on, speed: simSpeed };
 }
