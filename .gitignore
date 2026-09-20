@@ -4,3 +4,4 @@ server.log
 *.log
 .zcode/
 config.json
+e2e-result.txt
