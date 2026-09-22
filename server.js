@@ -151,7 +151,8 @@ let lastBroadcastAt = 0;
 // 推送节流：按在线观众规模自适应刷新间隔（人越多越省带宽，依然保持实时感）
 function broadcastInterval() {
   const n = sseClients.size;
-  if (n > 200) return 800;
+  if (n > 500) return 2000;
+  if (n > 200) return 1000;
   if (n > 60) return 400;
   return 150;
 }
@@ -314,7 +315,7 @@ function ipAllowed(ip) {
     ipCounters.set(ip, rec);
   }
   rec.n++;
-  return rec.n <= 3000;
+  return rec.n <= 12000;
 }
 
 function castVote(cid, deviceId, ip) {
