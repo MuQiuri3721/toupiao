@@ -374,6 +374,7 @@ function castVote(cid, deviceId, ip) {
 /* ============================== 演示模拟投票 ============================== */
 
 let simTimer = null;
+let simRunning = false;
 let simSpeed = 'medium';
 const SIM_DELAY = { slow: [900, 2200], medium: [250, 800], fast: [60, 240] };
 
@@ -391,13 +392,14 @@ function simulateOnce() {
 function setSimulate(on, speed) {
   if (speed && SIM_DELAY[speed]) simSpeed = speed;
   clearTimeout(simTimer);
+  simRunning = !!on;
   simTimer = on ? setTimeout(tickSim, 100) : null;
-  if (!on) simTimer = null;
   save();
   return { on: !!on, speed: simSpeed };
 }
 
 function tickSim() {
+  if (!simRunning) { simTimer = null; return; }
   simulateOnce();
   const [a, b] = SIM_DELAY[simSpeed];
   simTimer = setTimeout(tickSim, a + Math.random() * (b - a));

@@ -1,0 +1,13 @@
+===== 校园十佳歌手投票系统 · 完整测试 =====
+
+[A] 静态资源与页面可达性
+[B] 登录与鉴权
+[C] 结果导出
+[D] 投票状态机
+[D2] 投票倒计时
+[E] 投票规则
+[F] 非法输入
+[G] 选手管理
+测试脚本异常: TypeError: Cannot read properties of undefined (reading 'find')
+    at main (E:\开发\实时投票系统\e2e-test.js:177:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
