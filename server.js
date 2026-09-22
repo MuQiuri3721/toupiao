@@ -174,6 +174,17 @@ setInterval(() => {
   }
 }, 1000);
 
+// 定期清理过期的限速/防爆破计数（防长期运行内存增长）
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of ipCounters) {
+    if (now - rec.start > 300000) ipCounters.delete(ip);
+  }
+  for (const [ip, rec] of loginFails) {
+    if (rec.until && rec.until < now) loginFails.delete(ip);
+  }
+}, 300000);
+
 // 心跳，防止中间设备断开空闲连接
 setInterval(() => {
   for (const res of sseClients) {

@@ -224,8 +224,8 @@ async function main() {
   check('SSE 事件包含选手与总数', events.length > 0 && events[0].contestants && typeof events[0].totalVotes === 'number');
 
   /* ---------- K. IP 限速 ---------- */
-  console.log('[K] IP 限速（对无效选手连发 4000 请求，不污染数据）');
-  const total = 4000, CON = 40;
+  console.log('[K] IP 限速（对无效选手连发 15000 请求，不污染数据）');
+  const total = 15000, CON = 60;
   let idx = 0, c404 = 0, c429 = 0, cOther = 0;
   async function bomber() {
     while (idx < total) {
@@ -235,7 +235,7 @@ async function main() {
     }
   }
   await Promise.all(Array.from({ length: CON }, bomber));
-  check('超量请求被限速 429（拦截 ' + c429 + ' 个）', c429 > 500, '404×' + c404 + ' 429×' + c429 + ' other×' + cOther);
+  check('超量请求被限速 429（拦截 ' + c429 + ' 个）', c429 > 2000, '404×' + c404 + ' 429×' + c429 + ' other×' + cOther);
   check('限速只拦请求不产生票数', cOther === 0, 'other×' + cOther);
 
   /* ---------- L. 登录防爆破 ---------- */
