@@ -1,16 +1,5 @@
 'use strict';
 
-/* ===== 设备标识（防重复投票） ===== */
-function getDeviceId() {
-  let id = null;
-  try { id = localStorage.getItem('vv_device_id'); } catch (_) {}
-  if (!id) {
-    id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-    try { localStorage.setItem('vv_device_id', id); } catch (_) {}
-  }
-  return id;
-}
-
 /* ===== 请求封装 ===== */
 async function fetchJSON(url, opts = {}) {
   const res = await fetch(url, opts);

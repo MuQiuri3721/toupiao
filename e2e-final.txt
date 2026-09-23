@@ -1,0 +1,83 @@
+===== 校园十佳歌手投票系统 · 完整测试 =====
+
+[A] 静态资源与页面可达性
+[B] 登录与鉴权
+[C] 结果导出
+[D] 投票状态机
+[D2] 投票倒计时
+[E] 投票规则
+[F] 非法输入
+[G] 选手管理
+[H] 活动标题
+[I] 密码修改
+[J] 模拟投票 + SSE 推送
+[K] IP 限速（对无效选手连发 15000 请求，不污染数据）
+[L] 登录防爆破
+  （IP 锁定 10 分钟，重启服务即清空）
+
+===== 测试结果 =====
+  [PASS] GET /
+  [PASS] GET /screen
+  [PASS] GET /admin
+  [PASS] GET /css/common.css
+  [PASS] GET /css/vote.css
+  [PASS] GET /css/screen.css
+  [PASS] GET /css/admin.css
+  [PASS] GET /js/common.js
+  [PASS] GET /js/vote.js
+  [PASS] GET /js/screen.js
+  [PASS] GET /js/admin.js
+  [PASS] GET /js/decor.js
+  [PASS] GET /js/qrcode.min.js
+  [PASS] GET /favicon.ico 不报错
+  [PASS] 错误密码被拒绝(401)
+  [PASS] 正确密码拿到 token
+  [PASS] 无 token 访问管理接口被拒(401)
+  [PASS] 伪造 token 被拒(401)
+  [PASS] 正确 token 拿到 overview
+  [PASS] overview 不泄露密码字段
+  [PASS] CSV 可导出
+  [PASS] CSV 带 BOM(Excel 中文不乱码)
+  [PASS] CSV 包含排名表头
+  [PASS] CSV 包含投票明细段
+  [PASS] 无 token 导出被拒(401)
+  [PASS] 「已结束」时投票被拒
+  [PASS] 「未开始」时投票被拒
+  [PASS] 「投票中」正常投票
+  [PASS] 连投到 3/3
+  [PASS] 第 4 票被拒(票数用完)
+  [PASS] 开启投票时写入截止时间
+  [PASS] 倒计时期间可正常投票
+  [PASS] 设置为不限时后截止时间清空
+  [PASS] 关闭重复投：首次成功
+  [PASS] 关闭重复投：同选手第二票被拒
+  [PASS] 换选手仍可投
+  [PASS] 票数上限改为 5 后可连投 5 票
+  [PASS] 该设备剩余票数为 0
+  [PASS] 真实投票审计计数增长(模拟票不计入)
+  [PASS] 不存在的选手(404)
+  [PASS] 空选手 ID 被拒
+  [PASS] state 接口返回设备投票信息
+  [PASS] 添加选手
+  [PASS] 新选手出现在列表
+  [PASS] 编辑选手
+  [PASS] 修改已生效
+  [PASS] 删除选手
+  [PASS] 选手已消失
+  [PASS] 标题修改生效
+  [PASS] 标题已恢复
+  [PASS] 修改密码成功并返回新 token
+  [PASS] 旧 token 立即失效(401)
+  [PASS] 新 token 可用
+  [PASS] 原密码错误时拒绝改密(403)
+  [PASS] 密码已改回默认 123456
+  [PASS] 模拟投票使票数增长(122→138)
+  [PASS] 停止模拟后票数不再变化
+  [PASS] SSE 收到推送事件(14 条)
+  [PASS] SSE 事件包含选手与总数
+  [PASS] 超量请求被限速 429（拦截 3015 个）
+  [PASS] 限速只拦请求不产生票数
+  [PASS] 连续失败后登录被锁定
+
+通过 62 / 62  全部通过 ✔
+提示：投票状态当前为 open，IP 计数已打满，重启服务后恢复。

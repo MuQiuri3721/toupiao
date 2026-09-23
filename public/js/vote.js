@@ -18,7 +18,7 @@ const STATUS_TEXT = { ready: '未开始', open: '投票进行中', ended: '已�
 
 async function refresh() {
   try {
-    const d = await fetchJSON('/api/state?device=' + encodeURIComponent(getDeviceId()));
+    const d = await fetchJSON('/api/state');
     S = d;
     mine = d.device;
     if (!Array.isArray(mine.votedIds)) mine.votedIds = [];
@@ -168,7 +168,7 @@ $list.addEventListener('click', async e => {
     const r = await fetchJSON('/api/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: getDeviceId(), contestantId: cid })
+      body: JSON.stringify({ contestantId: cid })
     });
     mine.used = r.used;
     mine.remaining = r.remaining;

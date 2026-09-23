@@ -18,7 +18,7 @@ function check(name, cond, detail) {
   else { fail++; lines.push('  [FAIL] ' + name + (detail ? '  ← ' + detail : '')); }
 }
 
-function req(path, { method = 'GET', body, token } = {}) {
+function req(path, { method = 'GET', body, token, headers: extraHeaders } = {}) {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
     const r = http.request(BASE + path, {
@@ -26,7 +26,8 @@ function req(path, { method = 'GET', body, token } = {}) {
       headers: Object.assign(
         { 'Content-Type': 'application/json' },
         data ? { 'Content-Length': Buffer.byteLength(data) } : {},
-        token ? { 'x-admin-token': token } : {}
+        token ? { 'x-admin-token': token } : {},
+        extraHeaders || {}
       ),
     }, res => {
       let buf = '';
@@ -64,7 +65,9 @@ function sseCollect(seconds) {
   });
 }
 
-const vote = (cid, dev) => req('/api/vote', { method: 'POST', body: { contestantId: cid, deviceId: dev } });
+const crypto = require('crypto');
+// 投票：设备身份走 HttpOnly Cookie（32 位 hex，服务端 deviceOf 认可）
+const vote = (cid, dev) => req('/api/vote', { method: 'POST', body: { contestantId: cid }, headers: { Cookie: 'vv_dev=' + dev } });
 
 async function main() {
   console.log('===== 校园十佳歌手投票系统 · 完整测试 =====\n');
@@ -106,7 +109,7 @@ async function main() {
 
   /* ---------- D. 投票状态机 ---------- */
   console.log('[D] 投票状态机');
-  const dev = 'e2e-dev-' + Date.now();
+  const dev = crypto.randomBytes(16).toString('hex');
   await req('/api/admin/status', { method: 'POST', token: T, body: { status: 'ended' } });
   let v = await vote('c1', dev);
   check('「已结束」时投票被拒', v.status === 403 && /结束/.test(v.json.error), v.json.error);
@@ -129,7 +132,7 @@ async function main() {
   await req('/api/admin/status', { method: 'POST', token: T, body: { status: 'open' } });
   let stD2 = await req('/api/state');
   check('开启投票时写入截止时间', !!stD2.json.voteDeadline, JSON.stringify(stD2.json.voteDeadline));
-  const devD = 'e2e-dev-cd-' + Date.now();
+  const devD = crypto.randomBytes(16).toString('hex');
   const vD2 = await vote('c6', devD);
   check('倒计时期间可正常投票', vD2.status === 200, JSON.stringify(vD2));
   await req('/api/admin/settings', { method: 'POST', token: T, body: { voteDurationMin: 0 } });
@@ -139,7 +142,7 @@ async function main() {
   /* ---------- E. 规则：防重复 + 票数上限 ---------- */
   console.log('[E] 投票规则');
   await req('/api/admin/settings', { method: 'POST', token: T, body: { allowRepeat: false } });
-  const devB = dev + '-b';
+  const devB = crypto.randomBytes(16).toString('hex');
   v = await vote('c2', devB);
   check('关闭重复投：首次成功', v.status === 200);
   v = await vote('c2', devB);
@@ -149,7 +152,7 @@ async function main() {
   await req('/api/admin/settings', { method: 'POST', token: T, body: { allowRepeat: true } });
 
   await req('/api/admin/settings', { method: 'POST', token: T, body: { votesPerDevice: 5 } });
-  const devC = dev + '-c';
+  const devC = crypto.randomBytes(16).toString('hex');
   let allOk = true;
   for (let i = 0; i < 5; i++) { const r = await vote('c4', devC); if (r.status !== 200) allOk = false; }
   check('票数上限改为 5 后可连投 5 票', allOk);

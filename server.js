@@ -439,9 +439,11 @@ function readBody(req) {
   });
 }
 
+const SEC_HEADERS = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY' };
+
 function json(res, code, obj) {
   const body = JSON.stringify(obj);
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(code, { ...SEC_HEADERS, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(body);
 }
 
@@ -473,10 +475,11 @@ function serveFile(req, res, filePath) {
     ? 'no-cache'
     : 'public, max-age=3600';
   const headers = {
+    ...SEC_HEADERS,
     'Content-Type': MIME[ext] || 'application/octet-stream',
     'Cache-Control': cache,
     'Last-Modified': lastModified
-  };
+  }
 
   if (compressible) {
     let entry = staticCache.get(filePath);
@@ -530,6 +533,26 @@ function handleSSE(req, res) {
   req.on('close', () => sseClients.delete(res));
 }
 
+// ===== 设备身份：服务端签发 HttpOnly Cookie（客户端无法伪造新身份） =====
+function parseCookies(req) {
+  const out = {};
+  const h = req.headers.cookie || '';
+  for (const part of h.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) {
+      try { out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim()); } catch (_) {}
+    }
+  }
+  return out;
+}
+function deviceOf(req, res) {
+  const c = parseCookies(req).vv_dev;
+  if (c && /^[0-9a-f]{32}$/.test(c)) return c;
+  const id = crypto.randomBytes(16).toString('hex');
+  res.setHeader('Set-Cookie', 'vv_dev=' + id + '; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax');
+  return id;
+}
+
 const photoCache = new Map();   // id@updatedAt -> Buffer，避免每次请求重复解码 base64
 
 function handlePhoto(res, id) {
@@ -565,7 +588,13 @@ function exportCSV(res) {
   for (const v of state.voteLog) {
     rows.push([new Date(v.t).toLocaleString('zh-CN'), v.d, nameOf(v.c)]);
   }
-  const csv = '\uFEFF' + rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  // CSV 公式注入防护：= + - @ 开头的单元格加前导单引号（Excel 打开不执行公式）
+  const cellEsc = v => {
+    let t = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return '"' + t.replace(/"/g, '""') + '"';
+  };
+  const csv = '\uFEFF' + rows.map(r => r.map(cellEsc).join(',')).join('\r\n');
   res.writeHead(200, {
     'Content-Type': 'text/csv; charset=utf-8',
     'Content-Disposition': 'attachment; filename="votes.csv"'
@@ -647,7 +676,10 @@ async function handleAdmin(req, res, pathname, query) {
       if (body.name != null) c.name = String(body.name).trim() || c.name;
       if (body.className != null) c.className = String(body.className).trim();
       if (body.song != null) c.song = String(body.song).trim();
-      if ('photo' in body) c.photo = (typeof body.photo === 'string' && body.photo.startsWith('data:')) ? body.photo : (body.photo === null ? null : c.photo);
+      if ('photo' in body) {
+        if (typeof body.photo === 'string' && body.photo.length > 700000) return json(res, 400, { error: '照片过大' });
+        c.photo = (typeof body.photo === 'string' && body.photo.startsWith('data:')) ? body.photo : (body.photo === null ? null : c.photo);
+      }
       c.updatedAt = Date.now();
       structureDirty = true; dirty = true; save();
       return json(res, 200, { ok: true });
@@ -746,7 +778,8 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/state') {
       const snap = snapshot();
-      const devId = url.searchParams.get('device') || '';
+      // 设备状态查询：默认 Cookie 身份，显式 device 参数优先（测试/管理场景）
+      const devId = url.searchParams.get('device') || deviceOf(req, res);
       const dev = state.devices[devId];
       snap.device = {
         used: dev ? dev.used : 0,
@@ -758,8 +791,9 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/vote' && req.method === 'POST') {
       const body = await readBody(req);
-      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-      const r = castVote(String(body.contestantId || ''), String(body.deviceId || ''), ip);
+      const ip = req.socket.remoteAddress || '';   // 不信任可伪造的 X-Forwarded-For
+      const devId = deviceOf(req, res);   // HttpOnly Cookie 身份，客户端无法伪造
+      const r = castVote(String(body.contestantId || ''), devId, ip);
       return json(res, r.code, r.code === 200 ? { ok: true, ...r.data } : { error: r.error });
     }
 
