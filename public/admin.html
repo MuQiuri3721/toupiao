@@ -3,33 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#c48bff">
+<meta name="theme-color" content="#100c08">
 <title>管理后台</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
-<link rel="stylesheet" href="/css/common.css">
-<link rel="stylesheet" href="/css/admin.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='38' fill='none' stroke='%23e0a83c' stroke-width='9'/><circle cx='50' cy='50' r='12' fill='%23e0a83c'/></svg>">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 
-<!-- 登录 -->
+<!-- 登录：后台通行证 -->
 <div class="login-wrap" id="loginWrap">
-  <div class="login-card">
-    <div class="login-icon">🎤</div>
-    <h1>投票系统管理后台</h1>
-    <p class="login-tip">请输入管理密码</p>
+  <div class="pass-card">
+    <div class="pass-hole" aria-hidden="true"></div>
+    <span class="pass-en">STAFF PASS · MIDNIGHT GALA</span>
+    <h1>工作人员通行证</h1>
+    <p class="pass-sub">实时投票系统 · 检票后台</p>
+    <div class="pass-perf" aria-hidden="true"></div>
     <input type="password" id="pwdInput" placeholder="管理密码（默认 123456）" autocomplete="current-password">
-    <button id="loginBtn">登 录</button>
+    <button id="loginBtn">验票入场</button>
     <p class="login-err" id="loginErr"></p>
+    <div class="barcode pass-barcode" aria-hidden="true"></div>
   </div>
 </div>
 
 <!-- 主面板 -->
 <div class="app" id="app" hidden>
   <header class="topbar">
-    <div class="topbar-title">🎤 投票系统 · 管理后台</div>
+    <div class="topbar-title">投票系统 · 管理后台</div>
     <div class="topbar-links">
-      <a href="/screen" target="_blank">打开大屏 ↗</a>
-      <a href="/" target="_blank">打开投票页 ↗</a>
+      <a href="screen.html" target="_blank">打开大屏 ↗</a>
+      <a href="vote.html" target="_blank">打开投票页 ↗</a>
       <button id="logoutBtn">退出登录</button>
     </div>
   </header>
@@ -42,81 +45,102 @@
 
   <!-- 控制台 -->
   <section class="tab-page" id="tab-console">
-    <div class="card status-card">
-      <h3>投票控制</h3>
-      <div class="seg" id="statusSeg">
-        <button data-status="ready">⏸ 未开始</button>
-        <button data-status="open">▶ 投票中</button>
-        <button data-status="ended">🏁 已结束</button>
-      </div>
-      <p class="hint" id="cdLeft" hidden></p>
-      <p class="hint">投票开始后，学生即可在投票页投票；「已结束」后仍可查看排名。设置了投票时长时，到点自动截止。</p>
-      <div class="ctl-row">
-        <button id="celebrateBtn" class="btn-ghost">🎉 全屏撒花</button>
-        <span class="hint" style="align-self:center;">大屏全屏彩带，宣布结果/暖场时用</span>
-      </div>
-    </div>
-
     <div class="stats-row">
-      <div class="card stat-card"><b id="stTotal">0</b><span>累计票数</span></div>
-      <div class="card stat-card"><b id="stContestants">0</b><span>参赛选手</span></div>
-      <div class="card stat-card"><b id="stDevices">0</b><span>参与设备</span></div>
+      <div class="card stat-card"><b id="stTotal" class="num">0</b><span>累计票数</span></div>
+      <div class="card stat-card"><b id="stContestants" class="num">0</b><span>参赛选手</span></div>
+      <div class="card stat-card"><b id="stDevices" class="num">0</b><span>参与设备</span></div>
     </div>
 
-    <div class="card sim-card">
-      <h3>演示模式 · 模拟投票</h3>
-      <p class="hint">给老师演示用：开启后系统会自动持续产生假投票，大屏和投票页会实时跳动。<b class="warn">模拟票数会计入真实数据，正式比赛前请先在下方「清空所有票数」。</b></p>
-      <div class="sim-row">
-        <select id="simSpeed">
-          <option value="slow">🐢 慢速（约每秒1-2票）</option>
-          <option value="medium" selected>🚶 中速（约每秒2-4票）</option>
-          <option value="fast">🚀 快速（每秒10票以上）</option>
-        </select>
-        <button id="simBtn" class="btn-primary">开启模拟投票</button>
+    <div class="console-grid">
+      <div class="card">
+        <div class="card-head">
+          <h3>投票控制</h3>
+          <span class="card-en">VOTE CONTROL</span>
+        </div>
+        <div class="seg" id="statusSeg">
+          <button data-status="ready">未开始</button>
+          <button data-status="open">投票中</button>
+          <button data-status="ended">已结束</button>
+        </div>
+        <p class="hint" id="cdLeft" hidden></p>
+        <p class="hint">投票开始后学生即可在投票页投票；「已结束」后仍可查看排名。设置了投票时长时，到点自动截止。</p>
+        <div class="ctl-row">
+          <button id="celebrateBtn" class="btn-ghost">全屏撒花</button>
+          <span class="hint" style="align-self:center;">大屏全屏彩带，宣布结果/暖场时用</span>
+        </div>
       </div>
-    </div>
 
-    <div class="card link-card">
-      <h3>学生投票地址</h3>
-      <div class="link-row">
-        <div class="qr-mini" id="qrMini"></div>
-        <div class="link-info">
-          <code id="voteUrl">--</code>
-          <p class="hint" id="linkHint">学生手机连接同一个 WiFi，扫码或输入网址即可投票。</p>
-          <div class="link-actions">
-            <button id="copyBtn" class="btn-ghost">复制地址</button>
-            <a class="btn-ghost" id="openVote" href="/" target="_blank">查看投票页</a>
+      <div class="card">
+        <div class="card-head">
+          <h3>学生投票地址</h3>
+          <span class="card-en">SCAN TO VOTE</span>
+        </div>
+        <div class="link-row">
+          <div class="qr-mini" id="qrMini"></div>
+          <div class="link-info">
+            <code id="voteUrl">--</code>
+            <p class="hint" id="linkHint">正在获取投票地址…</p>
+            <div class="link-actions">
+              <button id="copyBtn" class="btn-ghost">复制地址</button>
+              <a class="btn-ghost" id="openVote" href="vote.html" target="_blank">查看投票页</a>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card net-card">
-      <h3>外网投票（微信扫码 · 手机流量）</h3>
-      <p class="hint">默认只有<b>同一 WiFi</b> 里的手机能投票。想让学生<b>用自己的流量、在微信里扫码进入</b>，需要一次「内网穿透」：在电脑上运行穿透工具获得公网地址，把地址粘贴到下面保存，二维码会自动变成公网版。</p>
+    <div class="console-grid">
+      <div class="card">
+        <div class="card-head">
+          <h3>演示模式 · 模拟投票</h3>
+          <span class="card-en">SIMULATION</span>
+        </div>
+        <p class="hint">给老师演示用：开启后自动持续产生假投票，大屏和投票页实时跳动。<b class="warn">模拟票数会计入真实数据，正式比赛前请先在右侧「清空所有票数」。</b></p>
+        <div class="sim-row">
+          <select id="simSpeed">
+            <option value="slow">慢速（约每秒1-2票）</option>
+            <option value="medium" selected>中速（约每秒2-4票）</option>
+            <option value="fast">快速（每秒10票以上）</option>
+          </select>
+          <button id="simBtn" class="btn-primary">开启模拟投票</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>数据操作</h3>
+          <span class="card-en">DATA</span>
+        </div>
+        <div class="danger-row">
+          <button id="exportBtn" class="btn-ghost">导出结果 CSV</button>
+          <button id="resetBtn" class="btn-danger">清空所有票数（开启新一轮）</button>
+        </div>
+        <p class="hint">清空会把所有票数、设备投票记录归零，用于新一轮投票或正式比赛前重置演示数据。</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>访问地址设置</h3>
+        <span class="card-en">ACCESS URL</span>
+      </div>
+      <p class="hint">系统已部署在云服务器并绑定域名时无需改动。若更换了域名或端口，在下面填入新地址保存，投票页二维码与大屏地址会自动跟随。</p>
       <div class="net-row">
-        <input id="publicUrlInput" placeholder="https://穿透工具给你的地址（如 https://xxxx.cpolar.io）" autocomplete="off">
+        <input id="publicUrlInput" placeholder="https://dreamlast.cn/vote" autocomplete="off">
         <button id="savePublicUrl" class="btn-primary">保存</button>
         <button id="clearPublicUrl" class="btn-ghost">清除（回到仅局域网）</button>
       </div>
       <p class="hint" id="netModeHint"></p>
-      <p class="hint">推荐工具：<b>natapp</b>（natapp.cn）或 <b>cpolar</b>（cpolar.com）——注册实名后按官网指引一条命令启动，把得到的 https 地址粘贴到上面即可，详细步骤见《使用说明.md》第五节。注意：免费版地址在穿透工具重启后会变，变了重新粘贴一次；比赛期间保持电脑、系统和穿透工具都开着。</p>
-    </div>
-
-    <div class="card danger-card">
-      <h3>数据操作</h3>
-      <div class="danger-row">
-        <button id="exportBtn" class="btn-ghost">⬇ 导出结果 CSV</button>
-        <button id="resetBtn" class="btn-danger">🗑 清空所有票数（开启新一轮）</button>
-      </div>
-      <p class="hint">清空会把所有票数、设备投票记录归零，用于新一轮投票或正式比赛前重置演示数据。</p>
     </div>
   </section>
 
   <!-- 选手管理 -->
   <section class="tab-page" id="tab-contestants" hidden>
     <div class="card">
-      <h3 id="formTitle">添加选手</h3>
+      <div class="card-head">
+        <h3 id="formTitle">添加选手</h3>
+        <span class="card-en">CONTESTANT REGISTRATION</span>
+      </div>
       <div class="form-grid">
         <div class="photo-box" id="photoBox">
           <span id="photoPreview" class="photo-preview">照片</span>
@@ -137,47 +161,60 @@
     </div>
 
     <div class="card">
-      <h3>选手列表（<span id="cCount">0</span> 人）</h3>
+      <div class="card-head">
+        <h3>选手名单</h3>
+        <span class="card-en">ROSTER · <b id="cCount">0</b> 人</span>
+      </div>
       <div class="c-list" id="cList"></div>
     </div>
   </section>
 
   <!-- 系统设置 -->
   <section class="tab-page" id="tab-settings" hidden>
-    <div class="card">
-      <h3>活动与规则</h3>
-      <label class="set-label">活动标题
-        <input id="setTitle" maxlength="40" placeholder="校园十佳歌手大赛">
-      </label>
-      <label class="set-label">每人可投票数（1-99）
-        <input id="setVotes" type="number" min="1" max="99">
-      </label>
-      <label class="set-check">
-        <input id="setRepeat" type="checkbox">
-        允许把多票投给同一位选手（取消勾选则每位选手限投 1 票）
-      </label>
-      <label class="set-label">投票倒计时（分钟，0 = 不限时；开始投票后到点自动截止）
-        <input id="setVoteDur" type="number" min="0" max="600" placeholder="0">
-      </label>
-      <button id="saveSettings" class="btn-primary">保存设置</button>
-    </div>
+    <div class="settings-grid">
+      <div class="card">
+        <div class="card-head">
+          <h3>活动与规则</h3>
+          <span class="card-en">EVENT RULES</span>
+        </div>
+        <label class="set-label">活动标题
+          <input id="setTitle" maxlength="40" placeholder="校园十佳歌手大赛">
+        </label>
+        <div class="set-row">
+          <label class="set-label">每人可投票数（1-99）
+            <input id="setVotes" type="number" min="1" max="99">
+          </label>
+          <label class="set-label">投票倒计时（分钟，0 = 不限时；开始后到点自动截止）
+            <input id="setVoteDur" type="number" min="0" max="600" placeholder="0">
+          </label>
+        </div>
+        <label class="set-check">
+          <input id="setRepeat" type="checkbox">
+          允许把多票投给同一位选手（取消勾选则每位选手限投 1 票）
+        </label>
+        <button id="saveSettings" class="btn-primary">保存设置</button>
+      </div>
 
-    <div class="card">
-      <h3>修改管理密码</h3>
-      <label class="set-label">原密码
-        <input id="pwOld" type="password" autocomplete="current-password">
-      </label>
-      <label class="set-label">新密码（至少 4 位）
-        <input id="pwNew" type="password" autocomplete="new-password">
-      </label>
-      <button id="savePassword" class="btn-primary">修改密码</button>
-      <p class="hint">默认密码为 123456，正式使用前建议修改。修改后需要重新登录。</p>
+      <div class="card">
+        <div class="card-head">
+          <h3>修改管理密码</h3>
+          <span class="card-en">PASSWORD</span>
+        </div>
+        <label class="set-label">原密码
+          <input id="pwOld" type="password" autocomplete="current-password">
+        </label>
+        <label class="set-label">新密码（至少 4 位）
+          <input id="pwNew" type="password" autocomplete="new-password">
+        </label>
+        <button id="savePassword" class="btn-primary">修改密码</button>
+        <p class="hint">默认密码为 123456，正式使用前建议修改。修改后需要重新登录。</p>
+      </div>
     </div>
   </section>
 </div>
 
-<script src="/js/qrcode.min.js"></script>
-<script src="/js/common.js"></script>
-<script src="/js/admin.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>

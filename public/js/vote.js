@@ -18,7 +18,7 @@ const STATUS_TEXT = { ready: '未开始', open: '投票进行中', ended: '已�
 
 async function refresh() {
   try {
-    const d = await fetchJSON('/api/state');
+    const d = await fetchJSON('/api/state?device=' + deviceId());
     S = d;
     mine = d.device;
     if (!Array.isArray(mine.votedIds)) mine.votedIds = [];
@@ -33,11 +33,11 @@ function renderBanner() {
   if (S.status === 'ready') {
     $banner.hidden = false;
     $banner.className = 'banner';
-    $banner.textContent = '⏳ 投票尚未开始，先看看都有哪些选手吧！';
+    $banner.textContent = '投票尚未开始，先看看都有哪些选手吧';
   } else if (S.status === 'ended') {
     $banner.hidden = false;
     $banner.className = 'banner ended';
-    $banner.textContent = '🏁 投票已结束，感谢大家的热情参与！';
+    $banner.textContent = '投票已结束，感谢大家的热情参与';
   } else {
     $banner.hidden = true;
   }
@@ -73,7 +73,7 @@ function renderList() {
     const st = buttonState(c);
     const rk = rankMap[c.id];
     const photo = c.photoRev
-      ? '<img src="/api/photo/' + c.id + '?v=' + c.photoRev + '" alt="">'
+      ? '<img loading="lazy" src="' + API_BASE + '/api/photo/' + c.id + '?v=' + c.photoRev + '" alt="">'
       : esc((c.name || '?').slice(0, 1));
     return (
       '<div class="card' + (enter ? ' vote-enter' : '') + '" id="card-' + c.id + '"' +
@@ -84,10 +84,11 @@ function renderList() {
           '<span class="rank-badge' + (rk <= 3 ? ' t' + rk : '') + '" data-id="' + c.id + '">#' + rk + '</span>' +
           '<span class="klass">' + esc(c.className) + '</span></div>' +
           '<div class="song">' + esc(c.song) + '</div>' +
-          '<div class="votes-row">' +
-            '<span class="votes" id="votes-' + c.id + '"><b>' + fmt(c.votes) + '</b>票</span>' +
-            '<button class="vote-btn ' + st.cls + '" data-id="' + c.id + '"' + (st.disabled ? ' disabled' : '') + '>' + st.label + '</button>' +
-          '</div>' +
+        '</div>' +
+        '<div class="tear-line" aria-hidden="true"></div>' +
+        '<div class="stub">' +
+          '<span class="votes" id="votes-' + c.id + '"><b>' + fmt(c.votes) + '</b>票</span>' +
+          '<button class="vote-btn ' + st.cls + '" data-id="' + c.id + '"' + (st.disabled ? ' disabled' : '') + '>' + st.label + '</button>' +
         '</div>' +
       '</div>'
     );
@@ -168,7 +169,7 @@ $list.addEventListener('click', async e => {
     const r = await fetchJSON('/api/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contestantId: cid })
+      body: JSON.stringify({ contestantId: cid, device: deviceId() })
     });
     mine.used = r.used;
     mine.remaining = r.remaining;
@@ -220,7 +221,7 @@ setInterval(() => {
   const p = x => String(x).padStart(2, '0');
   $cdText.hidden = false;
   $cdText.textContent = ' · 剩余 ' + p(mm) + ':' + p(ss);
-  $cdText.style.color = left <= 60000 ? '#ffb3c8' : '';
+  $cdText.style.color = left <= 60000 ? '#e2543f' : '';
 }, 1000);
 
 refresh();

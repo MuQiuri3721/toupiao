@@ -3,47 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#1f1843">
+<meta name="theme-color" content="#100c08">
 <title>实时投票大屏</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
-<link rel="stylesheet" href="/css/common.css">
-<link rel="stylesheet" href="/css/screen.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='38' fill='none' stroke='%23e0a83c' stroke-width='9'/><circle cx='50' cy='50' r='12' fill='%23e0a83c'/></svg>">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/screen.css">
 </head>
 <body>
 
-<div class="dec-layer" id="decor">
-  <div class="shooting-star"></div>
-  <div class="shooting-star" style="top:30%;left:82%;animation-delay:-4.5s;animation-duration:11s;"></div>
-</div>
+<div class="dec-layer" id="decor"></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="milestone" id="milestone" hidden></div>
-<div class="conn-badge" id="connBadge" hidden>📡 连接断开，正在重连…</div>
+<div class="conn-badge" id="connBadge" hidden>信号中断 · 正在重连</div>
 <div class="light-beam beam-l" aria-hidden="true"></div>
 <div class="light-beam beam-r" aria-hidden="true"></div>
-<div class="grain" aria-hidden="true"></div>
 <div class="bg-glow g1"></div>
 <div class="bg-glow g2"></div>
-<div class="bg-note" id="bgNote">♪</div>
+<div class="bg-note" id="bgNote">✦</div>
 
 <header class="topbar">
+  <div class="bulbs" aria-hidden="true"></div>
   <div class="brand">
-    <span class="mic">🎤</span>
+    <span class="mark" aria-hidden="true"></span>
     <div>
       <h1 id="title">校园十佳歌手大赛</h1>
       <div class="brand-sub">
+        <span class="bill-en sub-en">MIDNIGHT GALA · LIVE RESULTS</span>
         <span class="status-badge" id="statusBadge"><i></i><span id="statusText">未开始</span></span>
-        <span class="countdown" id="countdown" hidden>⏳ 剩余 <b id="cdTime">00:00</b></span>
-        <span class="clock" id="clock">--:--:--</span>
+        <span class="countdown num" id="countdown" hidden>剩余 <b id="cdTime">00:00</b></span>
+        <span class="clock num" id="clock">--:--:--</span>
       </div>
     </div>
   </div>
 
   <div class="total-box">
-    <div class="total-num" id="totalVotes">0</div>
+    <div class="total-num num" id="totalVotes">0</div>
     <div class="total-label">累计票数 TOTAL VOTES</div>
   </div>
 
-  <button class="fs-btn" id="fsBtn" title="全屏">⛶ 全屏</button>
+  <button class="fs-btn" id="fsBtn" title="全屏">全屏</button>
 </header>
 
 <div class="layout">
@@ -58,11 +56,12 @@
     <div class="ranking" id="ranking">
       <div class="empty" id="emptyTip">等待选手数据…</div>
     </div>
+    <div class="barcode" aria-hidden="true"></div>
   </section>
 
   <section class="panel chart-panel">
     <div class="panel-head">
-      <h2>实时票数柱状图</h2>
+      <h2>实时票数对比</h2>
       <span class="chart-cap">柱高 = 票数占比 · 实时刷新</span>
     </div>
     <div class="chart-wrap">
@@ -73,15 +72,18 @@
 
   <aside class="side">
     <div class="panel qr-panel">
-      <h3>扫码参与投票</h3>
+      <span class="qr-en">ADMIT ONE · SCAN TO VOTE</span>
+      <h3>扫码领取选票</h3>
       <div class="qr-box" id="qrBox"></div>
-      <div class="qr-url" id="qrUrl">--</div>
+      <div class="qr-perf" aria-hidden="true"></div>
+      <div class="qr-url num" id="qrUrl">--</div>
+      <p class="qr-hint">手机扫码进入投票通道 · 流量 / 任意 WiFi 均可</p>
     </div>
 
     <div class="panel trend-panel">
       <h3><span class="live-dot"></span>票数走势</h3>
       <div class="trend-box"><canvas id="trendChart"></canvas></div>
-      <div class="trend-rate">当前票速 <b id="voteRate">--</b> 票/分钟</div>
+      <div class="trend-rate">当前票速 <b id="voteRate" class="num">--</b> 票/分钟</div>
     </div>
 
     <div class="panel feed-panel">
@@ -92,20 +94,20 @@
     </div>
 
     <div class="panel stats-panel">
-      <div class="stat"><b id="statContestants">0</b><span>参赛选手</span></div>
-      <div class="stat"><b id="statDevices">--</b><span>参与设备</span></div>
+      <div class="stat"><b id="statContestants" class="num">0</b><span>参赛选手</span></div>
+      <div class="stat"><b id="statDevices" class="num">--</b><span>参与设备</span></div>
     </div>
   </aside>
 </div>
 
-<script src="/js/qrcode.min.js"></script>
-<script src="/js/common.js"></script>
-<script src="/js/decor.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/decor.js"></script>
 <script>
-  decorStars(document.getElementById('decor'), 30);
-  decorPetals(document.getElementById('decor'), 6);
-  decorNotes(document.getElementById('decor'), 5);
+  decorStars(document.getElementById('decor'), 26);
+  decorBeams(document.getElementById('decor'), 7);
+  decorScan(document.getElementById('decor'));
 </script>
-<script src="/js/screen.js"></script>
+<script src="js/screen.js"></script>
 </body>
 </html>

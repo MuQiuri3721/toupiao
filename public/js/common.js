@@ -1,8 +1,29 @@
 'use strict';
 
+/* ===== API 基地址 =====
+ * 页面有三种部署位置：
+ *  1) https://dreamlast.cn/vote/  —— nginx 同源托管，接口走同域反代（前缀 /vote）
+ *  2) COS 等 myqcloud 域名        —— 接口直连投票服务器
+ *  3) 服务器 8010 直连             —— 同源，空串
+ */
+const API_BASE = location.pathname.indexOf('/vote/') === 0 ? '/vote'
+  : /(^|\.)myqcloud\.com$/i.test(location.hostname) ? 'http://dreamlast.cn:8010' : '';
+
+/* ===== 设备标识：本地生成 32 位十六进制，与服务器 Cookie 格式一致 ===== */
+function deviceId() {
+  let id = localStorage.getItem('vv_dev');
+  if (!id || !/^[0-9a-f]{32}$/.test(id)) {
+    const a = new Uint8Array(16);
+    crypto.getRandomValues(a);
+    id = [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+    try { localStorage.setItem('vv_dev', id); } catch (_) {}
+  }
+  return id;
+}
+
 /* ===== 请求封装 ===== */
 async function fetchJSON(url, opts = {}) {
-  const res = await fetch(url, opts);
+  const res = await fetch(API_BASE + url, opts);
   let data = {};
   try { data = await res.json(); } catch (_) {}
   if (!res.ok) {
@@ -17,7 +38,7 @@ async function fetchJSON(url, opts = {}) {
 function connectEvents(handler, onStatus) {
   let es = null, stopped = false;
   function open() {
-    es = new EventSource('/api/events');
+    es = new EventSource(API_BASE + '/api/events');
     es.onopen = () => { if (onStatus) onStatus(true); };
     es.onmessage = e => {
       try { handler(JSON.parse(e.data)); } catch (err) { console.warn('事件处理异常:', err.message); }
@@ -46,9 +67,11 @@ function esc(s) {
 }
 
 function avatarColor(name) {
+  // 暖色相区间（金/琥珀/砖红/铜），贴合午夜场票根氛围
+  const warmHues = [38, 18, 8, 28, 12, 45, 350, 32];
   let h = 0;
   for (const ch of String(name || '?')) h = (h * 31 + ch.codePointAt(0)) >>> 0;
-  return 'hsl(' + (h % 360) + ' 65% 48%)';
+  return 'hsl(' + warmHues[h % warmHues.length] + ' 50% 36%)';
 }
 
 function timeStr(ts) {

@@ -1,16 +1,16 @@
+/* ============================================================
+   投票页 ·「午夜场入场券」
+   每张选手卡是一张演出票券：主券区 + 撕票线 + 票根区
+   ============================================================ */
 body {
   min-height: 100vh;
   background:
-    radial-gradient(900px 480px at 88% -4%, rgba(255, 198, 232, .6), transparent 62%),
-    radial-gradient(820px 520px at -8% 28%, rgba(205, 190, 255, .55), transparent 62%),
-    radial-gradient(900px 560px at 52% 112%, rgba(185, 226, 255, .55), transparent 62%),
-    linear-gradient(165deg, #fdf2ff 0%, #fff6f9 48%, #f1f7ff 100%);
-  color: #3c3358;
-  padding-bottom: 46px;
+    radial-gradient(720px 400px at 50% -8%, rgba(224, 168, 60, .10), transparent 62%),
+    radial-gradient(680px 460px at 105% 40%, rgba(217, 79, 61, .06), transparent 60%),
+    linear-gradient(180deg, #14100a 0%, #100c08 46%, #0c0906 100%);
+  color: #f2e8d5;
+  padding-bottom: 40px;
 }
-
-/* 浅色背景上音符用淡紫 */
-.dec-layer { --dec-note-color: rgba(206, 148, 240, .5); }
 
 /* 断线重连提示 */
 .conn-badge {
@@ -20,111 +20,122 @@ body {
   transform: translateX(-50%);
   z-index: 50;
   font-size: 12px;
-  color: #8a4a6a;
-  background: rgba(255, 235, 245, .92);
-  border: 1px solid rgba(233, 154, 214, .6);
-  padding: 6px 16px;
-  border-radius: 999px;
-  box-shadow: 0 4px 14px rgba(196, 140, 255, .25);
+  letter-spacing: 2px;
+  color: #f5c96a;
+  background: rgba(26, 19, 12, .95);
+  border: 1px solid rgba(224, 168, 60, .6);
+  padding: 6px 18px;
+  border-radius: 2px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .5);
 }
 
-/* ===== 顶部 ===== */
-.hero {
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  background: #c084fc;
-  color: #fff;
-  padding: 36px 18px 28px;
-  border-radius: 0 0 30px 30px;
-  box-shadow: 0 14px 40px rgba(233, 154, 214, .45);
+/* ===== 票头 ===== */
+.hero { position: relative; z-index: 1; padding: 30px 16px 0; }
+.hero-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, rgba(30, 23, 14, .92), rgba(22, 17, 10, .85));
+  border: 1px solid rgba(224, 168, 60, .4);
+  border-radius: 10px 10px 0 0;
+  padding: 22px 22px 0;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
 }
-@keyframes heroShift {
-  from { transform: translateX(-4%); }
-  to { transform: translateX(4%); }
+.hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
 }
-.hero-bg {
-  position: absolute;
-  inset: -12% -8%;
-  background: linear-gradient(120deg, #b78cff 0%, #f78fc5 32%, #ffb3c9 58%, #d3a0f5 82%, #b78cff 100%);
-  will-change: transform;
-  animation: heroShift 16s ease-in-out infinite alternate;
-}
-.hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(280px 130px at 18% 12%, rgba(255, 255, 255, .35), transparent 70%),
-    radial-gradient(320px 160px at 85% 90%, rgba(255, 255, 255, .22), transparent 70%);
-  pointer-events: none;
-}
-.hero-note {
-  position: absolute;
-  font-size: 30px;
-  opacity: .3;
-  text-shadow: 0 0 16px rgba(255, 255, 255, .8);
-  animation: float 5.5s ease-in-out infinite;
-  z-index: 1;
-}
-.hero-note.n1 { top: 16px; right: 30px; }
-.hero-note.n2 { bottom: 12px; left: 26px; font-size: 40px; animation-delay: 1.2s; }
-.hero-note.n3 { top: 44px; left: 46%; font-size: 22px; animation-delay: 2.4s; }
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(-6deg); }
-  50% { transform: translateY(-12px) rotate(8deg); }
-}
-.hero-inner { position: relative; z-index: 1; text-align: center; }
+.hero-title-wrap { min-width: 0; }
 .hero h1 {
-  font-family: 'KaiTi', 'STKaiti', '楷体', 'Noto Serif SC', serif;
-  font-size: 27px;
-  font-weight: 700;
-  letter-spacing: 5px;
-  text-shadow: 0 2px 18px rgba(255, 255, 255, .45), 0 4px 22px rgba(150, 60, 160, .3);
+  font-size: clamp(21px, 5vw, 30px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #f5e0b0;
+  text-shadow: 0 2px 18px rgba(224, 168, 60, .25);
+  line-height: 1.3;
 }
-.hero .sub { margin-top: 7px; font-size: 13px; opacity: .92; letter-spacing: 2px; }
+.hero-en {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #a89878;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 检票徽章 */
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 13px;
-  padding: 5px 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .22);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, .35);
+  gap: 8px;
+  padding: 7px 15px;
   font-size: 13px;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  color: #f5c96a;
+  background: rgba(224, 168, 60, .08);
+  border: 1px solid rgba(224, 168, 60, .5);
+  border-radius: 999px;
+  white-space: nowrap;
 }
 .status-pill .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #fff3b0;
-  box-shadow: 0 0 8px #fff3b0;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #e0a83c;
+  box-shadow: 0 0 10px rgba(224, 168, 60, .9);
 }
-.status-pill.open .dot { background: #b9ffd9; box-shadow: 0 0 8px #b9ffd9; animation: pulse 1.4s infinite; }
-.status-pill.ended .dot { background: #ffc9d4; box-shadow: 0 0 8px #ffc9d4; }
+.status-pill.open {
+  color: #f2e8d5;
+  background: rgba(217, 79, 61, .12);
+  border-color: rgba(217, 79, 61, .6);
+}
+.status-pill.open .dot {
+  background: #d94f3d;
+  box-shadow: 0 0 10px rgba(217, 79, 61, .9);
+  animation: pulse 1.5s infinite;
+}
+.status-pill.ended {
+  color: #a89878;
+  background: transparent;
+  border-color: rgba(168, 152, 120, .45);
+}
+.status-pill.ended .dot { background: #6b5f49; box-shadow: none; }
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(185, 255, 217, .7); }
-  50% { box-shadow: 0 0 0 7px rgba(185, 255, 217, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 79, 61, .55); }
+  50%      { box-shadow: 0 0 0 7px rgba(217, 79, 61, 0); }
 }
 
-/* ===== 提示横幅 ===== */
+/* 票头底缘撕票线 + 打孔 */
+.perfo {
+  margin-top: 18px;
+  height: 12px;
+  background:
+    radial-gradient(circle at 50% 0, transparent 5px, rgba(16, 12, 8, .9) 5.5px) 50% 100% / 22px 12px repeat-x,
+    repeating-linear-gradient(90deg, rgba(224, 168, 60, .5) 0 8px, transparent 8px 16px) 0 50% / 16px 2px no-repeat;
+  background-size: 22px 12px, 100% 2px;
+  background-repeat: repeat-x, no-repeat;
+  background-position: 50% 100%, 50% 50%;
+}
+
+/* ===== 票务公告 ===== */
 .banner {
   position: relative;
   z-index: 1;
   margin: 14px 14px 0;
-  padding: 11px 16px;
-  border-radius: 16px;
+  padding: 10px 16px;
   font-size: 14px;
   text-align: center;
-  background: rgba(255, 255, 255, .95);
-  color: #a873b8;
-  border: 1px solid rgba(233, 180, 230, .5);
-  backdrop-filter: blur(8px);
+  letter-spacing: 1px;
+  color: #f5c96a;
+  background: rgba(30, 23, 14, .8);
+  border: 1px solid rgba(224, 168, 60, .4);
+  border-radius: 3px;
 }
-.banner.ended { background: rgba(255, 240, 244, .8); color: #d3768f; border-color: rgba(255, 183, 203, .6); }
+.banner.ended { color: #b09a72; border-color: rgba(168, 152, 120, .4); }
 
-/* ===== 剩余票数 ===== */
+/* ===== 我的票券 ===== */
 .my-votes {
   position: relative;
   z-index: 1;
@@ -132,66 +143,86 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin: 14px 14px 0;
-  padding: 13px 18px;
-  background: rgba(255, 255, 255, .93);
-  border: 1px solid rgba(255, 255, 255, .95);
-  border-radius: 20px;
-  box-shadow: 0 8px 26px rgba(196, 140, 255, .16);
+  margin: 14px auto 0;
+  padding: 12px 20px;
+  max-width: 760px;
+  background: rgba(26, 19, 12, .82);
+  border: 1px solid rgba(224, 168, 60, .3);
+  border-radius: 3px;
 }
-.my-label { font-size: 13px; color: #9b8fb5; letter-spacing: 1px; }
-.my-votes-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.chips { display: inline-flex; gap: 5px; }
+.my-label { font-size: 12px; color: #a89878; letter-spacing: 3px; }
+.my-votes-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.chips { display: inline-flex; gap: 7px; flex-wrap: wrap; }
+/* 小票券：中间一道虚线撕纹 */
 .chip {
-  width: 12px; height: 12px; border-radius: 50%;
-  background: #efe9f8;
-  border: 1px solid #e2d7f2;
+  width: 22px; height: 13px;
+  border-radius: 2px;
+  border: 1px solid rgba(224, 168, 60, .45);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, rgba(224, 168, 60, .5) 9px 10.5px, transparent 10.5px 13px);
 }
 .chip.used {
-  background: linear-gradient(135deg, #c48bff, #ff9fce);
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(233, 154, 214, .55);
+  border-color: #e0a83c;
+  background:
+    repeating-linear-gradient(90deg, rgba(224, 168, 60, .28) 0 9px, #f5c96a 9px 10.5px, rgba(224, 168, 60, .28) 10.5px 13px),
+    #8a6420;
+  box-shadow: 0 0 12px rgba(224, 168, 60, .45);
 }
-.my-count { font-size: 13px; color: #9b8fb5; white-space: nowrap; }
-.my-count b { color: #c07ae0; font-size: 18px; }
+.my-count { font-size: 14px; color: #a89878; white-space: nowrap; }
+.my-count b { color: #f5c96a; font-size: 19px; font-weight: 700; }
 
-/* ===== 选手卡片 ===== */
+/* ===== 演出票券列表 ===== */
 #list {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 13px;
-  padding: 14px;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 14px 14px 4px;
   max-width: 760px;
   margin: 0 auto;
 }
+@media (min-width: 660px) {
+  #list { grid-template-columns: 1fr; }
+}
 
-/* 首次加载：卡片交错入场 */
+/* 首次加载：票券依次落票 */
 .card.vote-enter {
-  animation: cardIn .6s cubic-bezier(.22, 1, .36, 1) backwards;
-  animation-delay: calc(var(--i, 0) * 70ms);
+  animation: cardIn .5s cubic-bezier(.22, 1, .36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
 }
 @keyframes cardIn {
-  from { opacity: 0; transform: translateY(18px) scale(.97); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(14px) rotate(-.5deg); }
+  to   { opacity: 1; transform: none; }
 }
+
+/* 票券卡：左主券 + 撕票线 + 右票根 */
 .card {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, .95);
-  border: 1px solid rgba(255, 255, 255, .95);
-  border-radius: 22px;
-  padding: 15px;
-  box-shadow: 0 8px 28px rgba(196, 140, 255, .15);
-  transition: transform .18s ease, box-shadow .18s ease;
+  align-items: stretch;
+  background: linear-gradient(135deg, rgba(32, 25, 15, .95) 0%, rgba(24, 18, 11, .95) 100%);
+  border: 1px solid rgba(224, 168, 60, .38);
+  border-radius: 8px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(245, 201, 106, .12);
+  transition: border-color .18s ease, box-shadow .18s ease;
 }
 .card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 34px rgba(233, 154, 214, .24);
+  border-color: rgba(245, 201, 106, .75);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .6), 0 0 24px rgba(224, 168, 60, .12);
 }
-.card:active { transform: scale(.985); }
+
+/* 主券区 */
+.info {
+  flex: 1;
+  min-width: 0;
+  padding: 15px 16px;
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+
+/* 头像：圆形相片框 + 金环 */
 .avatar {
   width: 56px; height: 56px;
   border-radius: 50%;
@@ -199,130 +230,217 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 600;
+  color: #f5e0b0;
+  font-size: 21px;
+  font-weight: 900;
   overflow: hidden;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 6px 16px rgba(160, 100, 200, .35);
+  position: relative;
+  border: 2px solid rgba(224, 168, 60, .55);
+  box-shadow: 0 0 0 3px rgba(224, 168, 60, .12);
+  background: #2a2013;
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.info { flex: 1; min-width: 0; }
-.name-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+.info-main { flex: 1; min-width: 0; }
+.name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* 场次号：金底黑字小胶囊章 */
 .rank-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 8px;
   border-radius: 999px;
-  background: #f1e9fb;
-  color: #8d5fb8;
-  font-variant-numeric: tabular-nums;
+  font-family: 'Courier New', monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #14100a;
+  background: #e0a83c;
+  box-shadow: 0 0 10px rgba(224, 168, 60, .35);
+  flex-shrink: 0;
 }
-.rank-badge.t1 { background: linear-gradient(135deg, #f5c66d, #f2984f); color: #fff; }
-.rank-badge.t2 { background: linear-gradient(135deg, #c0cbe2, #94a3b8); color: #fff; }
-.rank-badge.t3 { background: linear-gradient(135deg, #f29a76, #e07b5a); color: #fff; }
+.rank-badge.t1 {
+  background: radial-gradient(circle at 32% 30%, #ffe9b8, #e0a83c 62%, #a87c22);
+  box-shadow: 0 0 14px rgba(245, 201, 106, .65);
+}
+.rank-badge.t2 {
+  background: radial-gradient(circle at 32% 30%, #ffffff, #c8cdd4 62%, #8d939e);
+}
+.rank-badge.t3 {
+  background: radial-gradient(circle at 32% 30%, #f0c2a0, #c47a4a 62%, #8f5227);
+}
 .name {
-  font-size: 16.5px;
-  font-weight: 600;
-  font-family: 'KaiTi', 'STKaiti', '楷体', 'Noto Serif SC', serif;
-  letter-spacing: 1px;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #f2e8d5;
 }
-.klass { font-size: 12px; color: #8d7fa8; }
+.klass { font-size: 12px; color: #a89878; }
 .song {
-  margin-top: 3px;
+  margin-top: 5px;
   font-size: 13px;
-  color: #7d6f96;
+  color: #c9b891;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.song::before { content: '♪ '; font-size: 12px; color: #d9a7e8; }
-.votes-row {
+.song::before {
+  content: '♪ ';
+  color: #e0a83c;
+  font-size: 12px;
+}
+
+/* 撕票线：竖向虚线 + 上下打孔环 */
+.tear-line {
+  width: 0;
+  border-left: 2px dashed rgba(224, 168, 60, .45);
+  position: relative;
+  margin: 10px 0;
+}
+.tear-line::before, .tear-line::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(224, 168, 60, .5);
+  background: #0e0a06;
+}
+.tear-line::before { top: -14px; }
+.tear-line::after { bottom: -14px; }
+
+/* 票根区：票数 + 投票按钮 */
+.stub {
+  width: 118px;
+  flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 9px;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 10px;
+  background:
+    radial-gradient(140px 70px at 50% 0, rgba(224, 168, 60, .07), transparent),
+    rgba(20, 15, 9, .6);
+  border-radius: 0 8px 8px 0;
 }
-.votes { font-size: 14px; color: #b3a5c9; position: relative; }
+.votes { font-size: 11px; color: #a89878; letter-spacing: 2px; text-align: center; }
 .votes b {
-  color: #c07ae0;
-  font-size: 17px;
-  margin-right: 3px;
-  text-shadow: 0 0 12px rgba(233, 154, 214, .45);
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 27px;
+  font-weight: 700;
+  color: #f5c96a;
+  text-shadow: 0 2px 14px rgba(224, 168, 60, .3);
+  line-height: 1.15;
 }
+
+/* 检票按钮：撕票动作 */
 .vote-btn {
-  padding: 8px 19px;
-  border-radius: 999px;
+  position: relative;
+  width: 100%;
+  padding: 9px 6px;
   font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: #fff;
-  background: linear-gradient(135deg, #c48bff, #ff8fc8);
-  box-shadow: 0 6px 16px rgba(233, 154, 214, .5);
-  transition: all .15s ease;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #14100a;
+  background: linear-gradient(180deg, #f5c96a, #e0a83c 55%, #c98f28);
+  border-radius: 3px;
+  box-shadow: 0 3px 0 #8a6420, 0 6px 16px rgba(224, 168, 60, .28);
+  transition: all .12s ease;
 }
-.vote-btn:active { transform: scale(.94); }
+.vote-btn:hover { filter: brightness(1.08); }
+.vote-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #8a6420, 0 2px 8px rgba(224, 168, 60, .25);
+}
 .vote-btn:disabled {
-  background: #ece7f4;
-  color: #b7aed0;
+  background: #2e2517;
+  color: #6b5f49;
   box-shadow: none;
   cursor: not-allowed;
 }
-.vote-btn.voted {
-  background: linear-gradient(135deg, #9be8c8, #6fd0c9);
-  box-shadow: 0 6px 16px rgba(140, 220, 195, .5);
-}
 
-/* +1 飘字 */
+/* 已投：盖上红色检票章 */
+.vote-btn.voted {
+  background: transparent;
+  color: #e2543f;
+  border: 2px solid #d94f3d;
+  box-shadow: none;
+  font-size: 12.5px;
+  letter-spacing: 2px;
+  transform: rotate(-6deg);
+  border-radius: 4px;
+  text-shadow: 0 0 8px rgba(217, 79, 61, .4);
+}
+.vote-btn.voted::before, .vote-btn.voted::after {
+  content: '';
+  position: absolute;
+  left: 6px; right: 6px;
+  height: 1.5px;
+  background: rgba(217, 79, 61, .55);
+}
+.vote-btn.voted::before { top: 4px; }
+.vote-btn.voted::after { bottom: 4px; }
+.stub { position: relative; }
+
+/* +1 飘字：金色票根 */
 .plus-one {
   position: absolute;
-  right: 0;
-  top: -6px;
-  color: #f07ac0;
+  right: 12px;
+  top: 4px;
+  color: #f5c96a;
   font-weight: 700;
-  font-size: 16px;
+  font-family: Georgia, serif;
+  font-size: 17px;
   pointer-events: none;
-  text-shadow: 0 0 12px rgba(255, 158, 205, .6);
+  text-shadow: 0 0 12px rgba(224, 168, 60, .7);
   animation: plusUp .8s ease forwards;
 }
 @keyframes plusUp {
-  0% { opacity: 0; transform: translateY(4px); }
-  25% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-26px); }
+  0%   { opacity: 0; transform: translateY(4px) rotate(6deg); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px) rotate(-6deg); }
 }
 
-/* 投票成功：爱心粒子迸发 */
+/* 投票成功：金红纸屑 */
 .spark {
   position: absolute;
-  left: 38%;
-  top: 2px;
+  left: 44%;
+  top: 8px;
   width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  height: 5px;
   pointer-events: none;
-  background: radial-gradient(circle at 35% 35%, #ffd9ec, #f07ac0);
-  box-shadow: 0 0 8px rgba(240, 122, 192, .8);
+  background: #f5c96a;
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgba(245, 201, 106, .9);
   animation: sparkFly .65s cubic-bezier(.16, 1, .3, 1) forwards;
 }
-.spark:nth-child(even) { background: radial-gradient(circle at 35% 35%, #e9d5ff, #a86ef0); }
+.spark:nth-child(even) { background: #d94f3d; box-shadow: 0 0 8px rgba(217, 79, 61, .9); }
+.spark:nth-child(3n) { background: #f2e8d5; box-shadow: 0 0 8px rgba(242, 232, 213, .9); }
 @keyframes sparkFly {
-  from { transform: translate(0, 0) scale(1); opacity: 1; }
-  to { transform: translate(var(--dx, 20px), var(--dy, -26px)) scale(.15); opacity: 0; }
+  from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  to   { transform: translate(var(--dx, 20px), var(--dy, -28px)) rotate(220deg) scale(.15); opacity: 0; }
 }
 
 .empty {
   grid-column: 1 / -1;
   text-align: center;
-  color: #b3a5c9;
+  color: #6b5f49;
   padding: 60px 0;
   font-size: 14px;
+  letter-spacing: 3px;
 }
 
+/* ===== 票脚 ===== */
 footer {
   position: relative;
   z-index: 1;
+  max-width: 760px;
+  margin: 20px auto 0;
+  padding: 0 14px;
   text-align: center;
-  color: #b7a9d0;
-  font-size: 12px;
-  padding-top: 6px;
-  letter-spacing: 1px;
 }
+footer .barcode { max-width: 300px; margin: 0 auto 10px; opacity: .55; }
+footer .bill-en { font-size: 12px; letter-spacing: 3px; color: #6b5f49; margin-bottom: 5px; }
+footer p:last-child { color: #6b5f49; font-size: 12px; letter-spacing: 2px; }

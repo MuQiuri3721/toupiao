@@ -98,15 +98,16 @@ function renderOverview() {
     cdLeft.hidden = true;
   }
 
-  // 外网模式提示
+  // 访问模式提示（按 publicMode 动态切换：公网部署 / 局域网）
   const pub = settings.publicUrl || '';
+  const pubMode = !!overview.publicMode;
   document.getElementById('publicUrlInput').value = pub;
-  document.getElementById('netModeHint').textContent = pub
-    ? '✅ 当前已是外网模式：学生用手机流量、微信扫码均可访问（' + pub + '）'
-    : '当前为局域网模式：仅同一 WiFi 内的手机能访问。';
-  document.getElementById('linkHint').textContent = pub
-    ? '学生扫码即可投票——手机流量、微信内打开都可以，无需连 WiFi。'
-    : '学生手机连接同一个 WiFi，扫码或输入网址即可投票。';
+  document.getElementById('netModeHint').textContent = pubMode
+    ? '✅ 当前外网可访问' + (pub ? '：' + pub : '') + '，学生任意网络扫码即可进入。'
+    : '当前仅局域网可访问（' + overview.lanUrl + '）。部署到云服务器后，在上方填写正式地址即可切换为外网模式。';
+  document.getElementById('linkHint').textContent = pubMode
+    ? '学生用手机流量、微信扫码即可投票，无需连接同一 WiFi。'
+    : '学生手机需连接同一 WiFi 后扫码投票。';
 }
 
 document.getElementById('statusSeg').addEventListener('click', async e => {
@@ -131,7 +132,7 @@ document.getElementById('simBtn').addEventListener('click', async () => {
 document.getElementById('celebrateBtn').addEventListener('click', async () => {
   try {
     await api('/api/admin/celebrate', {});
-    toast('🎉 已触发全屏撒花', 'success');
+    toast('已触发全屏撒花', 'success');
   } catch (e) { toast(e.message, 'error'); }
 });
 
@@ -172,7 +173,7 @@ document.getElementById('clearPublicUrl').addEventListener('click', async () => 
 
 document.getElementById('exportBtn').addEventListener('click', async () => {
   try {
-    const res = await fetch('/api/admin/export', { headers: { 'x-admin-token': token() } });
+    const res = await fetch(API_BASE + '/api/admin/export', { headers: { 'x-admin-token': token() } });
     if (!res.ok) throw new Error('导出失败');
     const blob = await res.blob();
     const a = document.createElement('a');
@@ -215,12 +216,13 @@ function renderContestants(list) {
     $cList.innerHTML = '<p class="hint">还没有选手，用上方表单添加，或直接开始演示（内置 12 名示例选手）。</p>';
     return;
   }
-  $cList.innerHTML = list.map(c => {
+  $cList.innerHTML = list.map((c, i) => {
     const avatar = c.photo
-      ? '<img src="/api/photo/' + c.id + '?v=' + c.updatedAt + '" alt="">'
+      ? '<img loading="lazy" src="' + API_BASE + '/api/photo/' + c.id + '?v=' + c.updatedAt + '" alt="">'
       : esc((c.name || '?').slice(0, 1));
     return (
       '<div class="c-item">' +
+        '<div class="c-plate">' + String(i + 1).padStart(2, '0') + '</div>' +
         '<div class="c-avatar" style="background:' + avatarColor(c.name) + '">' + avatar + '</div>' +
         '<div class="c-main">' +
           '<div class="c-name">' + esc(c.name) + '</div>' +
@@ -289,9 +291,9 @@ $photoClear.addEventListener('click', () => {
   showPhotoPreview(null);
 });
 
-/* 压缩图片：最长边 360px，JPEG 85% */
+/* 压缩图片：最长边 280px，JPEG 78%（服务器出口带宽仅 3Mbps，照片务必压小） */
 function resizeImage(file, max) {
-  max = max || 360;
+  max = max || 280;
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -304,7 +306,7 @@ function resizeImage(file, max) {
         canvas.width = w;
         canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        resolve(canvas.toDataURL('image/jpeg', 0.78));
       };
       img.onerror = reject;
       img.src = reader.result;

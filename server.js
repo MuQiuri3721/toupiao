@@ -12,6 +12,9 @@ const os = require('os');
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
+// 监听地址：默认全网卡（本机调试用）；云服务器上由 systemd 设 HOST=127.0.0.1，
+// 只允许本机 nginx 反代访问，公网无法绕过 HTTPS 直连
+const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -105,6 +108,11 @@ function loadData() {
       }
     }
   } catch (_) {}
+  // 密码哈希迁移：兼容旧版的明文 adminPassword 字段
+  if (!state.settings.adminPasswordHash) {
+    state.settings.adminPasswordHash = sha256hex(state.settings.adminPassword || '123456');
+    delete state.settings.adminPassword;
+  }
   refreshAdminToken();
 }
 
@@ -136,10 +144,26 @@ function appendVoteLog(entry) {
   } catch (e) { console.error('[日志写入失败]', e.message); }
 }
 
+// 哈希与时间安全比较助手
+const sha256hex = v => crypto.createHash('sha256').update(String(v)).digest('hex');
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+}
+
+// 客户端真实 IP：经本机 nginx 反代（https://dreamlast.cn/vote/）时 TCP 对端是 127.0.0.1，
+// 此时采信 nginx 传入的 X-Real-IP；直连场景一律不信任可伪造的 X-Forwarded-* 头
+function clientIp(req) {
+  const ra = req.socket.remoteAddress || '';
+  if ((ra === '127.0.0.1' || ra === '::1' || ra === '::ffff:127.0.0.1') && req.headers['x-real-ip']) {
+    return String(req.headers['x-real-ip']).slice(0, 45);
+  }
+  return ra;
+}
+
 function refreshAdminToken() {
-  adminToken = crypto.createHash('sha256')
-    .update('vv-admin|' + state.settings.adminPassword)
-    .digest('hex');
+  adminToken = sha256hex('vv-admin|' + (state.settings.adminPasswordHash || ''));
 }
 
 /* ============================== 实时推送（SSE） ============================== */
@@ -151,7 +175,7 @@ let lastBroadcastAt = 0;
 // 推送节流：按在线观众规模自适应刷新间隔（人越多越省带宽，依然保持实时感）
 function broadcastInterval() {
   const n = sseClients.size;
-  if (n > 500) return 2000;
+  if (n > 500) return 3000;   // 大规模在线时压低推送带宽（约 0.8Mbps@1000人）
   if (n > 200) return 1000;
   if (n > 60) return 400;
   return 150;
@@ -443,7 +467,13 @@ const SEC_HEADERS = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'D
 
 function json(res, code, obj) {
   const body = JSON.stringify(obj);
-  res.writeHead(code, { ...SEC_HEADERS, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(code, {
+    ...SEC_HEADERS,
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    // COS 托管的投票页跨域调用接口（前端不携带凭据，通配即可）
+    'Access-Control-Allow-Origin': '*'
+  });
   res.end(body);
 }
 
@@ -525,7 +555,8 @@ function handleSSE(req, res) {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no'
+    'X-Accel-Buffering': 'no',
+    'Access-Control-Allow-Origin': '*'
   });
   res.write(': connected\n\n');
   res.write('data: ' + JSON.stringify(snapshot()) + '\n\n');
@@ -608,12 +639,12 @@ async function handleAdmin(req, res, pathname, query) {
 
   // 登录（带防爆破：同 IP 连续错 5 次锁 10 分钟）
   if (pathname === '/api/admin/login') {
-    const lip = req.socket.remoteAddress || '';
+    const lip = clientIp(req);
     const lr = loginFails.get(lip);
     if (lr && lr.until > Date.now()) {
       return json(res, 429, { error: '尝试次数过多，请 10 分钟后再试' });
     }
-    if (body.password === s.adminPassword) {
+    if (safeEqual(sha256hex(String(body.password || '')), s.adminPasswordHash)) {
       loginFails.delete(lip);
       refreshAdminToken();
       return json(res, 200, { ok: true, token: adminToken });
@@ -719,10 +750,9 @@ async function handleAdmin(req, res, pathname, query) {
     }
 
     case '/api/admin/password': {
-      if (body.old !== s.adminPassword) return json(res, 403, { error: '原密码不正确' });
-      const next = String(body.next || '');
-      if (next.length < 4) return json(res, 400, { error: '新密码至少 4 位' });
-      s.adminPassword = next;
+      if (!safeEqual(sha256hex(String(body.old || '')), s.adminPasswordHash)) return json(res, 403, { error: '原密码不正确' });
+      if (String(body.next || '').length < 4) return json(res, 400, { error: '新密码至少 4 位' });
+      s.adminPasswordHash = sha256hex(String(body.next || ''));
       refreshAdminToken();
       save();
       return json(res, 200, { ok: true, token: adminToken });
@@ -774,6 +804,18 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/favicon.ico') { res.writeHead(204); return res.end(); }
 
+    // 跨域预检（COS 托管页面跨域调用接口时浏览器先发 OPTIONS）
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        ...SEC_HEADERS,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, x-admin-token',
+        'Access-Control-Max-Age': '86400'
+      });
+      return res.end();
+    }
+
     if (pathname === '/api/events') return handleSSE(req, res);
 
     if (pathname === '/api/state') {
@@ -791,8 +833,11 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/vote' && req.method === 'POST') {
       const body = await readBody(req);
-      const ip = req.socket.remoteAddress || '';   // 不信任可伪造的 X-Forwarded-For
-      const devId = deviceOf(req, res);   // HttpOnly Cookie 身份，客户端无法伪造
+      const ip = clientIp(req);   // 经本机 nginx 反代时取 X-Real-IP，直连时不信任伪造头
+      // 设备身份：COS 托管页面跨站带不了 Cookie，由前端 localStorage 显式传入（格式与 Cookie 一致）
+      const devId = (typeof body.device === 'string' && /^[0-9a-f]{32}$/.test(body.device))
+        ? body.device
+        : deviceOf(req, res);
       const r = castVote(String(body.contestantId || ''), devId, ip);
       return json(res, r.code, r.code === 200 ? { ok: true, ...r.data } : { error: r.error });
     }
@@ -825,7 +870,7 @@ loadData();
 
 process.on('SIGINT', () => { saveNow(); process.exit(0); });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, HOST, () => {
   const ips = [];
   for (const list of Object.values(os.networkInterfaces())) {
     for (const it of list || []) {

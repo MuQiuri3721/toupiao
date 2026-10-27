@@ -3,55 +3,59 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f78fc5">
+<meta name="theme-color" content="#100c08">
 <title>投票通道</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
-<link rel="stylesheet" href="/css/common.css">
-<link rel="stylesheet" href="/css/vote.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='38' fill='none' stroke='%23e0a83c' stroke-width='9'/><circle cx='50' cy='50' r='12' fill='%23e0a83c'/></svg>">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/vote.css">
 </head>
 <body>
 
 <div class="dec-layer" id="decor"></div>
 
-<div class="conn-badge" id="connBadge" hidden>📡 网络连接断开，正在重连…</div>
+<div class="conn-badge" id="connBadge" hidden>信号中断 · 正在重连</div>
 
-<div class="hero">
-    <div class="hero-bg" aria-hidden="true"></div>
-  <div class="hero-note n1">♪</div>
-  <div class="hero-note n2">♫</div>
-  <div class="hero-note n3">♬</div>
+<header class="hero">
   <div class="hero-inner">
-    <h1 id="title">校园十佳歌手大赛</h1>
-    <p class="sub" id="subtitle">现场投票通道 · 实时计票</p>
-    <div class="status-pill" id="statusPill">
-      <span class="dot"></span><span id="statusText">准备中</span>
-      <span id="cdText" hidden></span>
+    <div class="hero-head">
+      <div class="hero-title-wrap">
+        <h1 id="title">校园十佳歌手大赛</h1>
+        <p class="bill-en hero-en" id="subtitle">MIDNIGHT GALA · ADMISSION BY TICKET ONLY</p>
+      </div>
+      <div class="status-pill" id="statusPill">
+        <span class="dot"></span><span id="statusText">准备中</span>
+        <span id="cdText" hidden></span>
+      </div>
     </div>
+    <div class="perfo" aria-hidden="true"></div>
   </div>
-</div>
+</header>
 
 <div class="banner" id="banner" hidden></div>
 
 <div class="my-votes">
   <div class="my-votes-left">
-    <span class="my-label">我的剩余票数</span>
+    <span class="my-label">我的票券</span>
     <span class="chips" id="chips"></span>
   </div>
-  <span class="my-count"><b id="remaining">0</b> / <span id="total">0</span></span>
+  <span class="my-count num"><b id="remaining">0</b> / <span id="total">0</span></span>
 </div>
 
 <main id="list"></main>
 
 <footer>
-  <p>🎤 票数实时更新，排名结果请看现场大屏</p>
+  <div class="barcode" aria-hidden="true"></div>
+  <p class="bill-en">NO.2026-1027 · TEAR OFF TO VOTE</p>
+  <p>在你支持的选手票根上按下「投TA一票」 · 实时排名请看现场大屏</p>
 </footer>
 
-<script src="/js/common.js"></script>
-<script src="/js/decor.js"></script>
+<script src="js/common.js"></script>
+<script src="js/decor.js"></script>
 <script>
-  decorPetals(document.getElementById('decor'), 6);
-  decorNotes(document.getElementById('decor'), 4, ['♪', '♫', '♡']);
+  decorParticles(document.getElementById('decor'), 10, 0.25);
+  decorBeams(document.getElementById('decor'), 5);
+  decorScan(document.getElementById('decor'));
 </script>
-<script src="/js/vote.js"></script>
+<script src="js/vote.js"></script>
 </body>
 </html>

@@ -5,3 +5,7 @@ server.log
 .zcode/
 config.json
 e2e-result.txt
+
+# 工具产物（不上传）
+.trae-html-share-packages/
+cos-upload/

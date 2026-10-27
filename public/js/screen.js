@@ -81,16 +81,15 @@ function updateRow(el, c, rank, maxVotes, prevVotes) {
   el.classList.toggle('top3', rank === 3);
   el.classList.toggle('safe', rank <= 10 && rank > 3);
   el.classList.toggle('out', rank > 10);
-  el.querySelector('.rank').textContent =
-    rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+  el.querySelector('.rank').textContent = String(rank).padStart(2, '0');
 
   const avatar = el.querySelector('.avatar');
   if (c.photoRev) {
-    const src = '/api/photo/' + c.id + '?v=' + c.photoRev;
+    const src = API_BASE + '/api/photo/' + c.id + '?v=' + c.photoRev;
     if (avatar.dataset.src !== src) {
       avatar.dataset.src = src;
       avatar.style.background = avatarColor(c.name);
-      avatar.innerHTML = '<img src="' + src + '" alt="">';
+      avatar.innerHTML = '<img loading="lazy" src="' + src + '" alt="">';
     }
   } else if (avatar.dataset.initial !== c.name) {
     avatar.dataset.initial = c.name;
@@ -173,9 +172,10 @@ function buildCol() {
   el.innerHTML =
     '<div class="col-track">' +
       '<div class="col-rank"></div>' +
-      '<div class="col-fill"><div class="col-num"><b>0</b></div></div>' +
+      '<div class="col-fill"></div>' +
     '</div>' +
     '<div class="col-floor"><i class="col-refl"></i></div>' +
+    '<div class="col-num"><b>0</b></div>' +
     '<div class="col-name"></div>' +
     '<div class="col-meta"></div>';
   return el;
@@ -188,15 +188,13 @@ function updateCol(col, c, rank, maxVotes) {
     (rank > 3 && rank <= 10 ? ' safe' : '') +
     (rank > 10 ? ' out' : '');
   el.dataset.rank = rank;
-  el.querySelector('.col-rank').textContent =
-    rank === 1 ? '👑' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+  el.querySelector('.col-rank').textContent = String(rank).padStart(2, '0');
   el.querySelector('.col-name').textContent = c.name;
   el.querySelector('.col-meta').textContent = c.className || '';
 
   let pct = maxVotes > 0 ? c.votes / maxVotes * 100 : 0;
   if (c.votes > 0 && pct < 4) pct = 4;
   el.style.setProperty('--h', pct + '%');
-  el.querySelector('.col-fill').style.height = pct + '%';
 
   // 台面倒影高度跟随柱高
   const track = el.querySelector('.col-track');
@@ -329,7 +327,7 @@ function drawTrend() {
   const iw = w - padL - padR, ih = h - padT - padB;
 
   // 网格线
-  ctx.strokeStyle = 'rgba(255,255,255,.07)';
+  ctx.strokeStyle = 'rgba(245,201,106,.09)';
   ctx.lineWidth = 1;
   for (let g = 1; g <= 3; g++) {
     const y = padT + ih * g / 4;
@@ -337,7 +335,7 @@ function drawTrend() {
   }
 
   if (trend.length < 2) {
-    ctx.fillStyle = 'rgba(169,156,216,.75)';
+    ctx.fillStyle = 'rgba(168,152,120,.85)';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('等待投票数据…', w / 2, h / 2 + 4);
@@ -373,19 +371,19 @@ function drawTrend() {
   area.lineTo(pts[0][0], padT + ih);
   area.closePath();
   const g = ctx.createLinearGradient(0, padT, 0, padT + ih);
-  g.addColorStop(0, 'rgba(247,168,255,.32)');
-  g.addColorStop(1, 'rgba(139,124,246,.02)');
+  g.addColorStop(0, 'rgba(224,168,60,.30)');
+  g.addColorStop(1, 'rgba(224,168,60,.02)');
   ctx.fillStyle = g;
   ctx.fill(area);
 
   // 发光描边
   const lg = ctx.createLinearGradient(padL, 0, w - padR, 0);
-  lg.addColorStop(0, '#ffb7dc');
-  lg.addColorStop(.55, '#c4a6ff');
-  lg.addColorStop(1, '#93c5fd');
+  lg.addColorStop(0, '#f5c96a');
+  lg.addColorStop(.55, '#e0a83c');
+  lg.addColorStop(1, '#d94f3d');
   ctx.strokeStyle = lg;
   ctx.lineWidth = 2;
-  ctx.shadowColor = 'rgba(214,158,255,.85)';
+  ctx.shadowColor = 'rgba(224,168,60,.85)';
   ctx.shadowBlur = 8;
   ctx.stroke(linePath);
   ctx.shadowBlur = 0;
@@ -393,8 +391,8 @@ function drawTrend() {
   // 末端亮点
   ctx.beginPath();
   ctx.arc(lastX, lastY, 3.2, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffd9f1';
-  ctx.shadowColor = 'rgba(255,182,230,.95)';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.shadowColor = 'rgba(245,201,106,.95)';
   ctx.shadowBlur = 10;
   ctx.fill();
   ctx.shadowBlur = 0;
@@ -449,7 +447,7 @@ function fxResize() {
 window.addEventListener('resize', fxResize);
 fxResize();
 
-const FX_COLORS = ['#ffd166', '#ff8fc8', '#a78bfa', '#7ce8c4', '#8ec5ff', '#ffffff'];
+const FX_COLORS = ['#f5c96a', '#e0a83c', '#d94f3d', '#fff5f0', '#ffe9b8', '#a83a2e'];
 
 function confettiBurst(strength) {
   if (prefersReducedMotion()) return;
@@ -495,7 +493,7 @@ function fxFrame(t) {
 
 let milestoneTimer = null;
 function showMilestone(total) {
-  $milestone.textContent = '🎉 累计票数突破 ' + total + '！';
+  $milestone.textContent = '累计票数突破 ' + total;
   $milestone.hidden = false;
   requestAnimationFrame(() => $milestone.classList.add('show'));
   confettiBurst(1.6);
