@@ -1,5 +1,5 @@
 'use strict';
-const API='/api/platform';
+const API=location.pathname.replace(/\/+$/,'')+'/api/platform';
 const dialog=document.querySelector('#commerce-dialog');
 const content=document.querySelector('#dialog-content');
 let plans=[],pollTimer=null,viewToken=0;

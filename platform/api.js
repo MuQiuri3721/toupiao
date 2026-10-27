@@ -104,7 +104,10 @@ function createPlatform(config = {}) {
   function paymentConfig() {
     const result = {mode:'manual',wechat:null,alipay:null};
     for (const provider of ['wechat','alipay']) {
-      if (fs.existsSync(path.join(publicDir, 'payment', provider + '.png'))) result[provider] = '/platform/payment/' + provider + '.png';
+      if (fs.existsSync(path.join(publicDir, 'payment', provider + '.png'))) {
+        // 对外暴露路径可经 nginx 反代改写（如 PLATFORM_PUBLIC_BASE=/vote/shop），前端按 origin 解析需完整前缀
+        result[provider] = (process.env.PLATFORM_PUBLIC_BASE || '') + '/platform/payment/' + provider + '.png';
+      }
     }
     return result;
   }
