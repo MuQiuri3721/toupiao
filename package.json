@@ -2,6 +2,11 @@
   "name": "toupiao",
   "version": "1.0.0",
   "private": true,
-  "description": "校园十佳歌手实时投票系统（零依赖）",
-  "type": "commonjs"
+  "description": "轻投单页销售官网：产品介绍、套餐购买、订单与二维码支付预留",
+  "type": "commonjs",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  }
 }
