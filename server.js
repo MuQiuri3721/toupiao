@@ -10,11 +10,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const { createPlatform } = require('./platform/api');
 
 const PORT = Number(process.env.PORT) || 3000;
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
-const DATA_DIR = path.join(ROOT, 'data');
+const DATA_DIR = process.env.LEGACY_DATA_DIR || path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const BACKUP_FILE = path.join(DATA_DIR, 'data.backup.json');
 const VOTELOG_FILE = path.join(DATA_DIR, 'votes.log');
@@ -276,7 +277,7 @@ function snapshot() {
       photoRev: c.photo ? c.updatedAt : 0
     })),
     latest: state.latest.slice(0, 8),
-    lanUrl: voteBaseUrl() + '/'
+    lanUrl: voteBaseUrl() + '/legacy'
   };
 }
 
@@ -299,7 +300,7 @@ function compactSnapshot() {
     deviceCount: Object.keys(state.devices).length,
     votes,
     latest: state.latest.slice(0, 8),
-    lanUrl: voteBaseUrl() + '/'
+    lanUrl: voteBaseUrl() + '/legacy'
   };
 }
 
@@ -645,7 +646,7 @@ async function handleAdmin(req, res, pathname, query) {
           devices: Object.keys(state.devices).length,
           realVotes: state.voteLog.length
         },
-        lanUrl: voteBaseUrl() + '/',
+        lanUrl: voteBaseUrl() + '/legacy',
         publicMode: !!String(s.publicUrl || '').trim() || !!(CLOUD_MODE && publicIp),
         voteDeadlineLeftMs: (s.status === 'open' && state.voteDeadline) ? Math.max(0, state.voteDeadline - Date.now()) : null,
         simulating: !!simTimer,
@@ -767,10 +768,17 @@ async function handleAdmin(req, res, pathname, query) {
   }
 }
 
+const platform = createPlatform({ dbPath: process.env.PLATFORM_DB || path.join(ROOT, 'data', 'platform.sqlite') });
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const pathname = url.pathname;
+
+    if (await platform.handle(req, res, url)) return;
+    if (pathname === '/legacy') {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: '方法不允许' });
+      return serveStatic(req, res, '/vote.html');
+    }
 
     if (pathname === '/favicon.ico') { res.writeHead(204); return res.end(); }
 
@@ -823,7 +831,9 @@ const server = http.createServer(async (req, res) => {
 
 loadData();
 
-process.on('SIGINT', () => { saveNow(); process.exit(0); });
+function shutdown() { saveNow(); platform.close(); process.exit(0); }
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 server.listen(PORT, '0.0.0.0', () => {
   const ips = [];
@@ -835,14 +845,17 @@ server.listen(PORT, '0.0.0.0', () => {
   const urls = ips.length ? ips : ['127.0.0.1'];
   console.log('');
   console.log('  ============================================');
-  console.log('   校园十佳歌手 · 实时投票系统 已启动');
+  console.log('   轻投 · 产品销售官网 已启动');
   console.log('  ============================================');
   console.log('   本机演示:');
+  console.log('     平台官网   http://localhost:' + PORT + '/');
+  console.log('     订单管理   首页底部“订单管理”（需配置管理员环境变量）');
+  console.log('     校园投票   http://localhost:' + PORT + '/legacy');
   console.log('     管理后台   http://localhost:' + PORT + '/admin');
   console.log('     实时大屏   http://localhost:' + PORT + '/screen');
   console.log('');
   console.log('   学生投票（手机连同一 WiFi，逐个试哪个能打开）:');
-  for (const ip of urls) console.log('     ' + 'http://' + ip + ':' + PORT + '/');
+  for (const ip of urls) console.log('     ' + 'http://' + ip + ':' + PORT + '/legacy');
   console.log('');
   console.log('   管理密码: ' + state.settings.adminPassword + '（可在后台修改）');
   console.log('   关闭本窗口或按 Ctrl+C 即可停止系统');
